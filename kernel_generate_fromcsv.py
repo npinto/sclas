@@ -493,9 +493,14 @@ def kernel_generate_fromcsv(input_csv_fname,
         fstd[fstd==0] = 1
         whiten_vectors = (fmean, fstd)
         train_features.shape = fshape
+
+    assert(not sp.isnan(sp.ravel(train_features)).any())
+    assert(not sp.isinf(sp.ravel(train_features)).any())
+
     train_features = preprocess_features(train_features, 
                                          kernel_type = kernel_type,
                                          whiten_vectors = whiten_vectors)
+
     assert(not sp.isnan(sp.ravel(train_features)).any())
     assert(not sp.isinf(sp.ravel(train_features)).any())
 
