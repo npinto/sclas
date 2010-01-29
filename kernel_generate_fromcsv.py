@@ -16,8 +16,6 @@ import os.path as path
 import optparse
 import csv
 
-#from loadmat import loadmat
-
 import warnings
 warnings.simplefilter('ignore', FutureWarning)
 
@@ -30,16 +28,20 @@ except ImportError:
     print "scipy is missing (sudo easy_install -U scipy)"
     raise
 
+# TODO: only use numexpr when available (no dependency)
 try:
     import numexpr as ne
 except ImportError:
-    print "numexpr is missing (sudo easy_install -U numexpr)"
-    raise
+    print("**Warning**: numexpr (ne) is missing. "
+          "Code may raise exceptions!\n\n")
+    #raise
 
 from npprogressbar import *
 
 # ------------------------------------------------------------------------------
 
+
+DEFAULT_SIMFUNC = "abs_diff"
 DEFAULT_KERNEL_TYPE = "dot"
 DEFAULT_NOWHITEN = False
 DEFAULT_VARIABLE_NAME = "data"
@@ -55,12 +57,17 @@ DOT_MAX_NDIMS = 10000
 MEAN_MAX_NPOINTS = 2000
 STD_MAX_NPOINTS = 2000
 
+VALID_SIMFUNCS = ['abs_diff',
+                  'sq_diff',
+                  'sq_diff_o_sum',
+                  'sqrtabs_diff',
+                  ]
+
 VALID_KERNEL_TYPES = ["dot", 
                       "ndot",
                       "exp_mu_chi2", 
-                      "exp_mu_da"]
-
-
+                      "exp_mu_da",
+                      ]
 
 widgets = [RotatingMarker(), " Progress: ", Percentage(), " ",
            Bar(left='[',right=']'), ' ', ETA()]
@@ -264,13 +271,68 @@ def ndot_fromfeatures(features1,
     return sp.dot(features1, features2.T)
 
 # ------------------------------------------------------------------------------
+def load_fname(fname, kernel_type, variable_name):
+    
+    try:
+        if kernel_type == "exp_mu_da":
+            # hack for GB with 204 dims
+            fdata = io.loadmat(fname)[variable_name].reshape(-1, 204)
+        else:
+            fdata = io.loadmat(fname)[variable_name].ravel()
+
+    except TypeError:
+        print "[ERROR] couldn't open", fname, "deleting it!"
+        os.unlink(fname)
+        error = True
+
+    except:
+        print "[ERROR] (unknown) with", fname
+        raise
+
+    assert(not sp.isnan(fdata).any())
+    assert(not sp.isinf(fdata).any())
+
+    return fdata
+
+# ------------------------------------------------------------------------------
+def get_fvector(fnames,
+                kernel_type,
+                variable_name,
+                simfunc = DEFAULT_SIMFUNC):
+
+    assert simfunc in VALID_SIMFUNCS
+
+    if len(fnames) == 1:
+        fvector = load_fname(fnames[0], kernel_type, variable_name)
+    elif len(fnames) == 2:
+        fdata1 = load_fname(fnames[0], kernel_type, variable_name)
+        fdata2 = load_fname(fnames[1], kernel_type, variable_name)
+        if simfunc == 'abs_diff':
+            fvector = sp.absolute(fdata1-fdata2)
+        elif simfunc == 'sq_diff':
+            fvector = (fdata1-fdata2)**2.
+        elif simfunc == 'sq_diff_o_sum':
+            fvector = ((fdata1-fdata2)**2.) / (fdata1+fdata2)
+        elif simfunc == 'sqrtabs_diff':
+            fvector = sp.sqrt(sp.absolute(fdata1-fdata2))
+        # TODO: simfunc from p.belh?
+    else:
+        raise ValueError
+ 
+    return fvector
+
+# ------------------------------------------------------------------------------
 def kernel_generate_fromcsv(input_csv_fname,
                             input_suffix,
                             output_fname,
+                            # --
+                            simfunc = DEFAULT_SIMFUNC,
                             kernel_type = DEFAULT_KERNEL_TYPE,
                             nowhiten = DEFAULT_NOWHITEN,
+                            # --
                             variable_name = DEFAULT_VARIABLE_NAME,
                             input_path = DEFAULT_INPUT_PATH,
+                            # --
                             overwrite = DEFAULT_OVERWRITE,
                             ):
 
@@ -290,73 +352,63 @@ def kernel_generate_fromcsv(input_csv_fname,
     print "Processing %s ..." % input_csv_fname
     csvr = csv.reader(open(input_csv_fname))
     rows = [ row for row in csvr ]
-    ori_train_fnames = [ row[0] for row in rows if row[2] == "train" ][:LIMIT]
-    train_fnames = [ path.join(input_path, fname+input_suffix) 
-                     for fname in ori_train_fnames ][:LIMIT]
-    train_labels = [ row[1] for row in rows if row[2] == "train" ][:LIMIT]
+    ori_train_fnames = [ row[:-2] for row in rows if row[-1] == "train" ][:LIMIT]
+    train_fnames = [ [ path.join(input_path, fname+input_suffix)                       
+                       for fname in fnames ]
+                     for fnames in ori_train_fnames ][:LIMIT]    
+    train_labels = [ row[-2] for row in rows if row[-1] == "train" ][:LIMIT]
     
-    ori_test_fnames = [ row[0] for row in rows if row[2] == "test" ][:LIMIT]
-    test_fnames = [ path.join(input_path, fname+input_suffix) 
-                    for fname in ori_test_fnames ][:LIMIT]
-    test_labels = [ row[1] for row in rows if row[2] == "test" ][:LIMIT]
+    ori_test_fnames = [ row[:-2] for row in rows if row[-1] == "test" ][:LIMIT]
+    test_fnames = [ [ path.join(input_path, fname+input_suffix)
+                      for fname in fnames ]
+                    for fnames in ori_test_fnames ][:LIMIT]
+    test_labels = [ row[-2] for row in rows if row[-1] == "test" ][:LIMIT]
 
     ntrain = len(train_fnames)
     ntest = len(test_fnames)
 
     # --------------------------------------------------------------------------
-    # -- load features from train filenames
-    # set up progress bar
-    print "Loading training data ..."
-    pbar = ProgressBar(widgets=widgets, maxval=ntrain)
-    pbar.start()
-
+    # -- init
     # load first vector to get dimensionality
+    matdata = io.loadmat(train_fnames[0][0])[variable_name]
     if kernel_type == "exp_mu_da":
         # hack for GB with 204 dims
-        fvector0 = io.loadmat(train_fnames[0])[variable_name].reshape(-1, 204)
+        fvector0 = matdata.reshape(-1, 204)
     else:
-        fvector0 = io.loadmat(train_fnames[0])[variable_name].ravel()
+        fvector0 = matdata.ravel()
     featshape = fvector0.shape
     featsize = fvector0.size
 
-    # go
-    train_features = sp.empty((ntrain,) + featshape, dtype='float32')
-    error = False    
-    for i, fname in enumerate(train_fnames):
-        try:
-            if kernel_type == "exp_mu_da":
-                # hack for GB with 204 dims
-                fvector = io.loadmat(fname)[variable_name].reshape(-1, 204)
-            else:
-                fvector = io.loadmat(fname)[variable_name].ravel()
+    # -- helper function
+    # set up progress bar
+    def load_features(x_fnames, info_str = 'the'):        
+        print "-"*80
+        print "Loading %s data ..." % info_str
+        pbar = ProgressBar(widgets=widgets, maxval=len(x_fnames))
+        pbar.start()
 
-        except TypeError:
-            print "[ERROR] couldn't open", fname, "deleting it!"
-            os.unlink(fname)
-            error = True
-
-        except:
-            print "[ERROR] unkwon with", fname
-            raise
+        x_features = sp.empty((len(x_fnames),) + featshape,
+                              dtype='float32')
         
-        # XXX: revise that
-        #fvector[sp.isnan(fvector)] = 0
-        #fvector[sp.isinf(fvector)] = 0
-        assert(not sp.isnan(fvector).any())
-        assert(not sp.isinf(fvector).any())
-        #if fvector.shape != fvector0.shape:
-        #    print fname, fvector.shape, fvector0.shape
-        #try:
-        train_features[i] = fvector.reshape(fvector0.shape)
-        #except:
-            
-        pbar.update(i+1)
+        error = False    
+        for i, fnames in enumerate(x_fnames):
+            fvector = get_fvector(fnames, kernel_type, variable_name,
+                                  simfunc=simfunc)
+            fvector = fvector.reshape(fvector0.shape)
+            x_features[i] = fvector
+            pbar.update(i+1)
 
-    pbar.finish()
-    print "-"*80
+        pbar.finish()
+        print "-"*80        
 
-    if error:
-        raise RuntimeError("An error occured (load train). Exiting.")        
+        if error:
+            raise RuntimeError("An error occured while loading %s data."
+                               % info_str)
+        
+        return x_features
+
+    # -- load features from train filenames
+    train_features = load_features(train_fnames, info_str = 'training')
         
     # -- train x train
     print "Preprocessing train features ..."
@@ -452,42 +504,7 @@ def kernel_generate_fromcsv(input_csv_fname,
 
     # --------------------------------------------------------------------------
     # -- load features from test filenames
-    # set up progress bar
-    print "Loading testing data ..."
-    pbar = ProgressBar(widgets=widgets, maxval=ntest)
-    pbar.start()
-
-    # go
-    test_features = sp.empty((ntest,) + featshape, dtype='float32')
-    for i, fname in enumerate(test_fnames):
-
-        try:
-            if kernel_type == "exp_mu_da":            
-                # hack for GB with 204 dims
-                fvector = io.loadmat(fname)[variable_name].reshape(-1, 204)
-            else:        
-                fvector = io.loadmat(fname)[variable_name].ravel()
-        except TypeError:
-            print "[ERROR] couldn't open", fname, "deleting it"
-            os.unlink(fname)
-            error = True
-        except:
-            print "[ERROR] unkwon with", fname
-            raise
-            
-        # XXX: revise that
-        assert(not sp.isnan(fvector).any())
-        assert(not sp.isinf(fvector).any())
-        #if fvector.shape != fvector0.shape:
-        #    print fname, fvector.shape, fvector0.shape
-        test_features[i] = fvector.reshape(fvector0.shape)
-        pbar.update(i+1)
-
-    pbar.finish()
-    print "-"*80
-
-    if error:
-        raise RuntimeError("An error occured (load test). Exiting.")        
+    test_features = load_features(test_fnames, info_str = 'testing')
 
     # -- train x test
     print "Preprocessing test features ..."
@@ -529,30 +546,41 @@ def main():
     usage = "usage: %prog [options] <input_csv_filename> <input_suffix> <output_filename>"
     
     parser = optparse.OptionParser(usage=usage)
+    
+    help_str = ("the similarity function to use "
+                "(only for 'same/different' protocols) "
+                "from the following list: %s. "
+                % VALID_SIMFUNCS)
+    parser.add_option("--simfunc", "-s",
+                      type="str",                      
+                      metavar="STR",
+                      default=DEFAULT_SIMFUNC,
+                      help=help_str+"[DEFAULT='%default']"                      
+                      )
 
     parser.add_option("--kernel_type", "-k",
                       type="str",                      
                       metavar="STR",
                       default=DEFAULT_KERNEL_TYPE,
-                      help="'dot', 'exp_mu_chi2', 'exp_mu_da' [default='%default']")
-    # TODO: 'cosine', 'exp_mu_intersect', 'intersect', 'chi2'
+                      help="'dot', 'exp_mu_chi2', 'exp_mu_da' [DEFAULT='%default']")
+    # TODO: 'cosine', 'exp_mu_intersect', 'intersect', 'chi2' ?
 
     parser.add_option("--nowhiten",
                       default=DEFAULT_NOWHITEN,
                       action="store_true",
-                      help="[default=%default]")
+                      help="[DEFAULT=%default]")
 
     parser.add_option("--variable_name", "-n",
                       metavar="STR",
                       type="str",
                       default=DEFAULT_VARIABLE_NAME,
-                      help="[default='%default']")
+                      help="[DEFAULT='%default']")
 
     parser.add_option("--input_path", "-i",
                       default=DEFAULT_INPUT_PATH,
                       type="str",
                       metavar="STR",
-                      help="[default='%default']")
+                      help="[DEFAULT='%default']")
     
     parser.add_option("--overwrite",
                       default=DEFAULT_OVERWRITE,
@@ -579,10 +607,14 @@ def main():
         kernel_generate_fromcsv(input_csv_fname,
                                 input_suffix,
                                 output_fname,
+                                # --
+                                simfunc = opts.simfunc, 
                                 kernel_type = opts.kernel_type,
                                 nowhiten = opts.nowhiten,
+                                # --
                                 variable_name = opts.variable_name,
                                 input_path = opts.input_path,
+                                # --
                                 overwrite = opts.overwrite,
                                 )
 

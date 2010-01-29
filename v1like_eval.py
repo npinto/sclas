@@ -852,9 +852,16 @@ def similarity(fvector1,
     # XXX: Idea chi2 on a N-bin histogram
 
     return out
-    
-        
 
+    # #########################################################################
+    # USED IN CVPR09 PAPER:
+    #     elif simfunc == 'sdnomeannonorm':
+    #         rep = (im1r-im2r)**2.
+    #     elif simfunc == 'absnomeannonorm':
+    #         rep = abs(im1r-im2r)
+    #     elif simfunc == 'sqrtabsnomeannonorm':
+    #         rep = sqrt(abs(im1r-im2r))
+    # #########################################################################
     
 
 #     if simfunc == 'cc':
