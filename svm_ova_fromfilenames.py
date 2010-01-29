@@ -10,12 +10,19 @@ import sys
 from os import path
 import warnings
 
-import scipy as sp
+#import scipy as sp
+import numpy as np
 
-from scipy import (
-    array, io, double, zeros, 
+#from scipy import (
+from numpy import (
+    array, double, zeros, 
     dot, mean, sign, inf, unique,
     )
+
+try:
+    from scipy import io
+except ImportError:
+    import myio as io
 
 from shogun import Kernel, Classifier, Features
 
@@ -215,10 +222,10 @@ def svm_ova_fromfilenames(input_filenames,
             # -- get average precision
             c = distances
             #print c
-            si = sp.argsort(-c)
-            tp = sp.cumsum(sp.single(test_labels[si]>0))
-            fp = sp.cumsum(sp.single(test_labels[si]<0))
-            rec  = tp/sp.sum(test_labels>0)
+            si = np.argsort(-c)
+            tp = np.cumsum(np.single(test_labels[si]>0))
+            fp = np.cumsum(np.single(test_labels[si]<0))
+            rec  = tp/np.sum(test_labels>0)
             prec = tp/(fp+tp)
 
             #print prec, rec
@@ -227,7 +234,7 @@ def svm_ova_fromfilenames(input_filenames,
             #show()
 
             ap = 0
-            rng = sp.arange(0,1.1,.1)
+            rng = np.arange(0,1.1,.1)
             for th in rng:
                 p = prec[rec>=th].max()
                 if p == []:
@@ -241,8 +248,8 @@ def svm_ova_fromfilenames(input_filenames,
 
 
     # XXX: clean this
-    test_y = sp.array([svm_labels.ravel()==lab
-                       for lab in sp.unique(svm_labels.ravel())]
+    test_y = np.array([svm_labels.ravel()==lab
+                       for lab in np.unique(svm_labels.ravel())]
                       )*2-1
     test_y = test_y.T
     
