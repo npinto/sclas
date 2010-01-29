@@ -19,6 +19,8 @@ from numpy import (
     dot, mean, sign, inf, unique,
     )
 
+# this is a hack to get io.{load,save}mat working
+# when scipy is not present (e.g. on cygwin)
 try:
     from scipy import io
 except ImportError:
