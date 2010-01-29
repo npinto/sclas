@@ -1,0 +1,4 @@
+derived from scipy.io 0.7.1
+
+Warning: won't work with sparse matrices ("if scipy.sparse.issparse(arr)" tests have been disabled)
+
