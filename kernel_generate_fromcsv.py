@@ -308,8 +308,10 @@ def get_fvector(fnames,
     if len(fnames) == 1:
         fvector = load_fname(fnames[0], kernel_type, variable_name)
     elif len(fnames) == 2:
-        fdata1 = load_fname(fnames[0], kernel_type, variable_name)
-        fdata2 = load_fname(fnames[1], kernel_type, variable_name)
+        fname1, fname2 = fnames
+        fdata1 = load_fname(fname1, kernel_type, variable_name)
+        fdata2 = load_fname(fname2, kernel_type, variable_name)
+        assert fdata1.shape == fdata2.shape, "with %s and %s" % (fname1, fname2)
         if simfunc == 'abs_diff':
             fvector = sp.absolute(fdata1-fdata2)
         elif simfunc == 'sq_diff':
