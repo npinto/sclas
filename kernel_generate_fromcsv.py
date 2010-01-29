@@ -61,6 +61,9 @@ VALID_SIMFUNCS = ['abs_diff',
                   'sq_diff',
                   'sq_diff_o_sum',
                   'sqrtabs_diff',
+                  'mul',
+                  'sqrt_mul',
+                  'tmp',
                   ]
 
 VALID_KERNEL_TYPES = ["dot", 
@@ -312,9 +315,17 @@ def get_fvector(fnames,
         elif simfunc == 'sq_diff':
             fvector = (fdata1-fdata2)**2.
         elif simfunc == 'sq_diff_o_sum':
-            fvector = ((fdata1-fdata2)**2.) / (fdata1+fdata2)
+            denom = (fdata1+fdata2)
+            denom[denom==0] = 1
+            fvector = ((fdata1-fdata2)**2.) / denom
         elif simfunc == 'sqrtabs_diff':
             fvector = sp.sqrt(sp.absolute(fdata1-fdata2))
+        elif simfunc == 'mul':
+            fvector = fdata1*fdata2
+        elif simfunc == 'sqrt_mul':
+            fvector = sp.sqrt(fdata1*fdata2)
+        elif simfunc == 'tmp':
+            fvector = fdata1*fdata2 * sp.exp(-((fdata1+fdata2)**2)/2.)
         # TODO: simfunc from p.belh?
     else:
         raise ValueError
