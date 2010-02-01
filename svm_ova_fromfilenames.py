@@ -90,7 +90,7 @@ def svm_ova_fromfilenames(input_filenames,
             train_fnames = kernel_mat["train_fnames"]
             test_fnames = kernel_mat["test_fnames"]
         else:
-            print train_fnames, kernel_mat["train_fnames"]
+            #print train_fnames, kernel_mat["train_fnames"]
             assert (train_fnames == kernel_mat["train_fnames"]).all()
             assert (test_fnames == kernel_mat["test_fnames"]).all()
 
