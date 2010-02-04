@@ -41,20 +41,22 @@ The progressbar module is very easy to use, yet very powerful. And
 automatically supports features like auto-resizing when available.
 """
 
-__author__ = "Nilton Volpato"
+__author__ = "Nilton Volpato and Nicolas Pinto"
 __author_email__ = "first-name dot last-name @ gmail.com"
-__date__ = "2006-05-07"
-__version__ = "2.2"
+__date__ = "2010-02-04"
+__version__ = "2.4"
 
 # Changelog
 #
-# 2006-05-07: v2.2 fixed bug in windows
+# 2010-02-04: v2.4 add ERROR_NRETRY for IOError (int. syscall)
+# 2009-??-??: v2.3 add decimal to 'Percentage' (NP)
 # 2005-12-04: v2.1 autodetect terminal width, added start method
 # 2005-12-04: v2.0 everything is now a widget (wow!)
 # 2005-12-03: v1.0 rewrite using widgets
 # 2005-06-02: v0.5 rewrite
 # 2004-??-??: v0.1 first version
 
+ERROR_NRETRY = 5
 
 import sys, time
 from array import array
@@ -280,11 +282,17 @@ class ProgressBar(object):
             self.start_time = time.time()
         self.seconds_elapsed = time.time() - self.start_time
         self.prev_percentage = self.percentage()
-        if value != self.maxval:
-            self.fd.write(self._format_line() + '\r')
-        else:
-            self.finished = True
-            self.fd.write(self._format_line() + '\n')
+        for _ in xrange(ERROR_NRETRY):
+            try:
+                if value != self.maxval:
+                    self.fd.write(self._format_line() + '\r')
+                else:
+                    self.finished = True
+                    self.fd.write(self._format_line() + '\n')
+                break
+            except IOError, err:
+                if err.errno != 4:
+                    raise err
 
     def start(self):
         """Start measuring time, and prints the bar at 0%.
