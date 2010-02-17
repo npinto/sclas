@@ -13,6 +13,7 @@
 import sys
 import os
 import os.path as path
+import shutil
 import optparse
 import csv
 
@@ -64,6 +65,7 @@ VALID_SIMFUNCS = ['abs_diff',
                   'mul',
                   'sqrt_mul',
                   'tmp',
+                  'tmp2'
                   ]
 
 VALID_KERNEL_TYPES = ["dot", 
@@ -284,8 +286,10 @@ def load_fname(fname, kernel_type, variable_name):
             fdata = io.loadmat(fname)[variable_name].ravel()
 
     except TypeError:
-        print "[ERROR] couldn't open", fname, "deleting it!"
-        os.unlink(fname)
+        fname_error = fname+'.error'
+        print "[ERROR] couldn't open", fname, "moving it to", fname_error
+        #os.unlink(fname)
+        shutil.move(fname, fname_error)
         error = True
 
     except:
@@ -328,7 +332,12 @@ def get_fvector(fnames,
             fvector = sp.sqrt(fdata1*fdata2)
         elif simfunc == 'tmp':
             fvector = fdata1*fdata2 * sp.exp(-((fdata1+fdata2)**2)/2.)
-        # TODO: simfunc from p.belh?
+        elif simfunc == 'tmp2':
+            a0 = fdata1==0
+            b0 = fdata2==0
+            fvector = fdata1/fdata2 + fdata2/fdata1
+            fvector[a0] = 0
+            fvector[b0] = 0
     else:
         raise ValueError
  
