@@ -12,7 +12,7 @@
 
 import sys
 import os
-import os.path as path
+from os import path
 import shutil
 import optparse
 import csv
@@ -392,6 +392,10 @@ def kernel_generate_fromcsv(input_csv_fname,
 
     ntrain = len(train_fnames)
     ntest = len(test_fnames)
+
+    print "Verifying that all necessary files exist ..."
+    for fname in train_fnames+test_fnames:
+        assert(path.exists(fname))
 
     # --------------------------------------------------------------------------
     # -- init
