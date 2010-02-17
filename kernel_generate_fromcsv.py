@@ -394,7 +394,7 @@ def kernel_generate_fromcsv(input_csv_fname,
     ntest = len(test_fnames)
 
     print "Verifying that all necessary files exist ..."
-    for fname in train_fnames+test_fnames:
+    for fname in sp.array(train_fnames+test_fnames).ravel():
         assert(path.exists(fname))
 
     # --------------------------------------------------------------------------
