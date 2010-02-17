@@ -296,6 +296,10 @@ def load_fname(fname, kernel_type, variable_name):
         print "[ERROR] (unknown) with", fname
         raise
 
+    if error:
+        raise RuntimeError("An error occured while loading %s data."
+                           % info_str)
+
     assert(not sp.isnan(fdata).any())
     assert(not sp.isinf(fdata).any())
 
@@ -412,7 +416,6 @@ def kernel_generate_fromcsv(input_csv_fname,
         x_features = sp.empty((len(x_fnames),) + featshape,
                               dtype='float32')
         
-        error = False    
         for i, fnames in enumerate(x_fnames):
             fvector = get_fvector(fnames, kernel_type, variable_name,
                                   simfunc=simfunc)
@@ -423,10 +426,6 @@ def kernel_generate_fromcsv(input_csv_fname,
         pbar.finish()
         print "-"*80        
 
-        if error:
-            raise RuntimeError("An error occured while loading %s data."
-                               % info_str)
-        
         return x_features
 
     # -- load features from train filenames
