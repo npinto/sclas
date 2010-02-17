@@ -277,7 +277,9 @@ def ndot_fromfeatures(features1,
 
 # ------------------------------------------------------------------------------
 def load_fname(fname, kernel_type, variable_name):
-    
+
+
+    error = False
     try:
         if kernel_type == "exp_mu_da":
             # hack for GB with 204 dims
