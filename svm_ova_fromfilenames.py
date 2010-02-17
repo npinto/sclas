@@ -75,9 +75,9 @@ def svm_ova_fromfilenames(input_filenames,
     train_fnames = None
     test_fnames = None
     print "Loading %d file(s) ..."  % lf
-    for fname, weight in zip(input_filenames, weights):
+    for ifn, (fname, weight) in enumerate(zip(input_filenames, weights)):
 
-        print " %s (weight=%f)"  % (fname, weight)
+        print "%d %s (weight=%f)"  % (ifn+1, fname, weight)
 
         if weight == 0:
             continue
@@ -143,6 +143,7 @@ def svm_ova_fromfilenames(input_filenames,
     if categories.size == 2:
         categories = [categories[0]]
 
+    print "Training %d SVM(s) ..." % len(categories)
     for icat, cat in enumerate(categories):
         ltrain = zeros((train_labels.size))
         ltrain[train_labels != cat] = -1
@@ -164,16 +165,14 @@ def svm_ova_fromfilenames(input_filenames,
     #print "ok"
     
     # -- test
+    print "Testing ..."
     pred = zeros((n_test))
     distances = zeros((n_test, len(categories)))
     for icat, cat in enumerate(categories):        
-        for point in xrange(n_test):
-            index_sv = support_vectors[cat]
-            resp = dot(alphas[cat], 
-                       kernel_test[index_sv, point]) \
-                       + biases[cat]
-
-            distances[point, icat] = resp
+        index_sv = support_vectors[cat]
+        resps = dot(alphas[cat], 
+                   kernel_test[index_sv]) + biases[cat]
+        distances[:, icat] = resps
 
     if len(categories) > 1:
         pred = distances.argmax(1)
