@@ -709,8 +709,9 @@ def main():
                 "from the following list: %s. "
                 % VALID_SIMFUNCS)
     parser.add_option("--simfunc", "-s",
-                      type="str",                      
-                      metavar="STR",
+                      type="choice",                      
+                      #metavar="STR",
+                      choices=VALID_SIMFUNCS,
                       default=DEFAULT_SIMFUNC,
                       help=help_str+"[DEFAULT='%default']"                      
                       )
