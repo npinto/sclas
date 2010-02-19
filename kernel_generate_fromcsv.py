@@ -58,15 +58,34 @@ DOT_MAX_NDIMS = 10000
 MEAN_MAX_NPOINTS = 2000
 STD_MAX_NPOINTS = 2000
 
-VALID_SIMFUNCS = ['abs_diff',
-                  'sq_diff',
-                  'sq_diff_o_sum',
-                  'sqrtabs_diff',
-                  'mul',
-                  'sqrt_mul',
-                  'tmp',
-                  'tmp2'
-                  ]
+VALID_SIMFUNCS = [
+    # -- CVPR09
+    'abs_diff',
+    'sq_diff',    
+    'sqrtabs_diff',
+    # -- NP Jan 2010
+    'mul',
+    'sqrt_mul',
+    # -- Others
+    'sq_diff_o_sum',
+    # -- DDC Feb 2010
+    'normalized_AND_soft',
+    'normalized_AND_hard_0.5',
+    'pseudo_AND_soft',
+    'pseudo_AND_hard_0.5',
+    'pseudo_AND_hard_0.25',
+    # -- tmp    
+    'tmp',
+    'tmp2',
+    'tmp3',
+    'tmp4',
+    'tmp5',
+    'tmp6',
+    'tmp7',
+    'tmp8',
+    'tmp9',
+    'tmp10',
+    ]
 
 VALID_KERNEL_TYPES = ["dot", 
                       "ndot",
@@ -322,28 +341,130 @@ def get_fvector(fnames,
         fdata1 = load_fname(fname1, kernel_type, variable_name)
         fdata2 = load_fname(fname2, kernel_type, variable_name)
         assert fdata1.shape == fdata2.shape, "with %s and %s" % (fname1, fname2)
+
         if simfunc == 'abs_diff':
             fvector = sp.absolute(fdata1-fdata2)
+
         elif simfunc == 'sq_diff':
             fvector = (fdata1-fdata2)**2.
+
         elif simfunc == 'sq_diff_o_sum':
             denom = (fdata1+fdata2)
             denom[denom==0] = 1
             fvector = ((fdata1-fdata2)**2.) / denom
+
         elif simfunc == 'sqrtabs_diff':
             fvector = sp.sqrt(sp.absolute(fdata1-fdata2))
+
         elif simfunc == 'mul':
             fvector = fdata1*fdata2
+
         elif simfunc == 'sqrt_mul':
             fvector = sp.sqrt(fdata1*fdata2)
+
+        # DDC additions, FWTW:
+        elif simfunc == 'normalized_AND_soft':
+            fvector = (fdata1 / fdata1.std()) * (fdata2 / fdata2.std())
+
+        elif simfunc == 'normalized_AND_hard_0.5':
+            fvector = ((fdata1 / fdata1.std()) * (fdata2 / fdata2.std()) > 0.5)
+
+        elif simfunc == 'pseudo_AND_soft':
+            # this is very similar to mul.  I think it may be one "explanation" for why mul is good
+            denom = fdata1 + fdata2
+            # goes from 1 when fdata1==fdata2, to 0 when they are very different
+            fvector = 4. * (fdata1 / denom) * (fdata2 / denom)  
+            fvector[sp.isnan(fvector)] = 1 # correct behavior is to have the *result* be one
+            fvector[sp.isinf(fvector)] = 1
+
+        elif simfunc == 'pseudo_AND_hard_0.5':
+            denom = fdata1 + fdata2
+            # goes from 1 when fdata1==fdata2, to 0 when they are very different
+            fvector = ( (4. * (fdata1 / denom) * (fdata2 / denom)) > 0.5 )        
+
+        elif simfunc == 'pseudo_AND_hard_0.25':
+            denom = fdata1 + fdata2
+            # goes from 1 when fdata1==fdata2, to 0 when they are very different
+            fvector = ( (4. * (fdata1 / denom) * (fdata2 / denom)) > 0.25 )
+            
         elif simfunc == 'tmp':
-            fvector = fdata1*fdata2 * sp.exp(-((fdata1+fdata2)**2)/2.)
+            fvector = fdata1**2. + fdata2**2.
+
         elif simfunc == 'tmp2':
-            a0 = fdata1==0
-            b0 = fdata2==0
-            fvector = fdata1/fdata2 + fdata2/fdata1
-            fvector[a0] = 0
-            fvector[b0] = 0
+            fvector = fdata1**2. + fdata1*fdata2 + fdata2**2.
+
+        elif simfunc == 'tmp3':
+            fvector = (fdata1 + fdata2)**2.
+
+        #elif simfunc == 'pseudo_AND_soft':
+        elif simfunc == 'tmp4':
+            # this is very similar to mul.  I think it may be one "explanation" for why mul is good
+            denom = fdata1 + fdata2
+            denom[denom==0] = 1
+            # goes from 1 when fdata1==fdata2, to 0 when they are very different
+            fvector = 4. * (fdata1 / denom) * (fdata2 / denom)          
+
+        #elif simfunc == 'pseudo_AND_hard_0.5':
+        elif simfunc == 'tmp5':        
+            denom = fdata1 + fdata2
+            denom[denom==0] = 1
+            # goes from 1 when fdata1==fdata2, to 0 when they are very different
+            fvector = ( (4. * (fdata1 / denom) * (fdata2 / denom)) > 0.5 )
+        
+        #elif simfunc == 'pseudo_AND_hard_0.25':
+        elif simfunc == 'tmp6':                
+            denom = fdata1 + fdata2
+            denom[denom==0] = 1
+            # goes from 1 when fdata1==fdata2, to 0 when they are very different
+            fvector = ( (4. * (fdata1 / denom) * (fdata2 / denom)) > 0.25 )
+            
+        elif simfunc == 'tmp7':                
+            denom = fdata1 + fdata2
+            denom[denom==0] = 1
+            # goes from 1 when fdata1==fdata2, to 0 when they are very different
+            fvector = ( (4. * (fdata1 / denom) * (fdata2 / denom)) > 0.1 )            
+        elif simfunc == 'tmp8':
+            #assert fdata1.min() != fdata1.max()
+            #fdata1 -= fdata1.min()
+            #fdata1 /= fdata1.max()
+            #assert fdata2.min() != fdata2.max()
+            #fdata2 -= fdata2.min()
+            #fdata2 /= fdata2.max()
+            denom = fdata1 + fdata2
+            fvector = 4. * (fdata1 / denom) * (fdata2 / denom)
+            #sp.putmask(fvector, sp.isnan(fvector), 0)
+            fvector[sp.isnan(fvector)] = 0
+            fvector[sp.isinf(fvector)] = 0
+            assert(not sp.isnan(fvector).any())
+            
+        elif simfunc == 'tmp9':
+            assert fdata1.min() != fdata1.max()
+            fdata1 -= fdata1.min()
+            fdata1 /= fdata1.max()
+            assert fdata2.min() != fdata2.max()
+            fdata2 -= fdata2.min()
+            fdata2 /= fdata2.max()
+            denom = fdata1 + fdata2
+            fvector = 4. * (fdata1 / denom) * (fdata2 / denom)
+            #sp.putmask(fvector, sp.isnan(fvector), 0)
+            fvector[sp.isnan(fvector)] = 0
+            fvector[sp.isinf(fvector)] = 0
+            assert(not sp.isnan(fvector).any())
+            
+        elif simfunc == 'tmp10':
+            assert fdata1.min() != fdata1.max()
+            fdata1 -= fdata1.min()
+            fdata1 /= fdata1.max()
+            assert fdata2.min() != fdata2.max()
+            fdata2 -= fdata2.min()
+            fdata2 /= fdata2.max()
+            denom = fdata1 + fdata2
+            #fvector = 4. * (fdata1 / denom) * (fdata2 / denom)
+            fvector = ( (4. * (fdata1 / denom) * (fdata2 / denom)) > 0.25 )
+            #sp.putmask(fvector, sp.isnan(fvector), 0)
+            fvector[sp.isnan(fvector)] = 0
+            fvector[sp.isinf(fvector)] = 0
+            assert(not sp.isnan(fvector).any())
     else:
         raise ValueError
  
@@ -395,8 +516,12 @@ def kernel_generate_fromcsv(input_csv_fname,
     ntrain = len(train_fnames)
     ntest = len(test_fnames)
 
-    print "Verifying that all necessary files exist ..."
-    for fname in sp.array(train_fnames+test_fnames).ravel():
+    all_fnames = sp.array(train_fnames+test_fnames).ravel()
+    for n, fname in enumerate(all_fnames):
+        sys.stdout.write("Verifying that all necessary files exist:"
+                         " %02.2f%%\r" % (100.*(n+1)/all_fnames.size))
+        sys.stdout.flush()
+                         
         assert(path.exists(fname))
 
     # --------------------------------------------------------------------------
