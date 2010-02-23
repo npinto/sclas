@@ -670,7 +670,7 @@ def kernel_generate_fromcsv(input_csv_fname,
                             nowhiten = DEFAULT_NOWHITEN,
                             # --
                             variable_name = DEFAULT_VARIABLE_NAME,
-                            input_path = DEFAULT_INPUT_PATH,
+                            #input_path = DEFAULT_INPUT_PATH,
                             # --
                             overwrite = DEFAULT_OVERWRITE,
                             ):
@@ -974,7 +974,7 @@ def main():
                                 nowhiten = opts.nowhiten,
                                 # --
                                 variable_name = opts.variable_name,
-                                input_path = opts.input_path,
+                                #input_path = opts.input_path,
                                 # --
                                 overwrite = opts.overwrite,
                                 )
