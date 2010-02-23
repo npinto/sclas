@@ -66,24 +66,24 @@ VALID_SIMFUNCS = [
     # -- NP Jan 2010
     'mul',
     'sqrt_mul',
+    'sq_add',
+    'pseudo_AND_soft_range01',
     # -- Others
-    'sq_diff_o_sum',
+    #'sq_diff_o_sum',
     # -- DDC Feb 2010
-    'normalized_AND_soft',
-    'normalized_AND_hard_0.5',
-    'pseudo_AND_soft',
+    'normalized_AND_soft', 
+    #'normalized_AND_hard_0.5', # poor performance
+    #'pseudo_AND_soft', # poor performance
     'pseudo_AND_hard_0.5',
     'pseudo_AND_hard_0.25',
     # -- tmp    
     'tmp',
     'tmp2',
-    'tmp3',
     'tmp4',
     'tmp5',
     'tmp6',
     'tmp7',
     'tmp8',
-    'tmp9',
     'tmp10',
     ]
 
@@ -348,10 +348,10 @@ def get_fvector(fnames,
         elif simfunc == 'sq_diff':
             fvector = (fdata1-fdata2)**2.
 
-        elif simfunc == 'sq_diff_o_sum':
-            denom = (fdata1+fdata2)
-            denom[denom==0] = 1
-            fvector = ((fdata1-fdata2)**2.) / denom
+#         elif simfunc == 'sq_diff_o_sum':
+#             denom = (fdata1+fdata2)
+#             denom[denom==0] = 1
+#             fvector = ((fdata1-fdata2)**2.) / denom
 
         elif simfunc == 'sqrtabs_diff':
             fvector = sp.sqrt(sp.absolute(fdata1-fdata2))
@@ -361,6 +361,21 @@ def get_fvector(fnames,
 
         elif simfunc == 'sqrt_mul':
             fvector = sp.sqrt(fdata1*fdata2)
+
+        elif simfunc == 'sq_add':
+            fvector = (fdata1 + fdata2)**2.
+
+        elif simfunc == 'pseudo_AND_soft_range01':
+            assert fdata1.min() != fdata1.max()
+            fdata1 -= fdata1.min()
+            fdata1 /= fdata1.max()
+            assert fdata2.min() != fdata2.max()
+            fdata2 -= fdata2.min()
+            fdata2 /= fdata2.max()
+            denom = fdata1 + fdata2
+            fvector = 4. * (fdata1 / denom) * (fdata2 / denom)
+            sp.putmask(fvector, sp.isnan(fvector), 0)
+            sp.putmask(fvector, sp.isinf(fvector), 0)                        
 
         # DDC additions, FWTW:
         elif simfunc == 'normalized_AND_soft':
@@ -392,9 +407,6 @@ def get_fvector(fnames,
 
         elif simfunc == 'tmp2':
             fvector = fdata1**2. + fdata1*fdata2 + fdata2**2.
-
-        elif simfunc == 'tmp3':
-            fvector = (fdata1 + fdata2)**2.
 
         #elif simfunc == 'pseudo_AND_soft':
         elif simfunc == 'tmp4':
@@ -430,20 +442,6 @@ def get_fvector(fnames,
             #assert fdata2.min() != fdata2.max()
             #fdata2 -= fdata2.min()
             #fdata2 /= fdata2.max()
-            denom = fdata1 + fdata2
-            fvector = 4. * (fdata1 / denom) * (fdata2 / denom)
-            #sp.putmask(fvector, sp.isnan(fvector), 0)
-            fvector[sp.isnan(fvector)] = 0
-            fvector[sp.isinf(fvector)] = 0
-            assert(not sp.isnan(fvector).any())
-            
-        elif simfunc == 'tmp9':
-            assert fdata1.min() != fdata1.max()
-            fdata1 -= fdata1.min()
-            fdata1 /= fdata1.max()
-            assert fdata2.min() != fdata2.max()
-            fdata2 -= fdata2.min()
-            fdata2 /= fdata2.max()
             denom = fdata1 + fdata2
             fvector = 4. * (fdata1 / denom) * (fdata2 / denom)
             #sp.putmask(fvector, sp.isnan(fvector), 0)
@@ -698,8 +696,8 @@ def kernel_generate_fromcsv(input_csv_fname,
     io.savemat(output_fname, data, format="4")
 
 # ------------------------------------------------------------------------------
-def main():
-
+def get_optparser():
+    
     usage = "usage: %prog [options] <input_csv_filename> <input_suffix> <output_filename>"
     
     parser = optparse.OptionParser(usage=usage)
@@ -749,7 +747,17 @@ def main():
 #                       default=DEFAULT_VERBOSE,
 #                       action="store_true",
 #                       help="[default=%default]")
+    # --
+    
+    
+    return parser
 
+    
+# ------------------------------------------------------------------------------
+def main():
+
+    parser = get_optparser()
+    
     opts, args = parser.parse_args()
 
     if len(args) != 3:

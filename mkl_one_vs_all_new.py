@@ -9,6 +9,7 @@ from shogun import Kernel, Classifier, Features
 import optparse
 import sys
 import copy
+import scipy as sp
 
 #from numpy import unique
 from scipy import unique, mgrid, trace, sign, ascontiguousarray, empty, diag
@@ -17,11 +18,13 @@ import time
 
 C_DEFAULT = 1e4
 LIMIT = int(4e6)
+MKL_WEIGHTS_CUTOFF = 1e-4
 #MKL = True
 
 from IPython.Shell import IPShellEmbed
 ipshell = IPShellEmbed(argv=[])
 
+# XXX: OPTION: binary value with cutoff @ 1e-1 or 1e-2
 
 cache_train = {}
 cache_test = {}
@@ -62,7 +65,8 @@ def mkl_train(fname_l, reg, ltrain, no_mkl, flip):
             else:
                 #print "loading", fname
                 d = io.loadmat(fname)
-                kermat = (d[keytrain]).astype(double)
+                #kermat = (d[keytrain]).astype(double)
+                kermat = d[keytrain]
                 #kermat += kermat.min()
                 del d
                 #kdiag = 
@@ -71,8 +75,8 @@ def mkl_train(fname_l, reg, ltrain, no_mkl, flip):
                 if tr1 == 0:
                     print "trace is 0, skipping"
                     continue
-                print i+1, "trace", tr1, "min", kermat.min(), "max", kermat.max(), fname                
-                kermat /= tr1
+                print i+1, "trace", tr1, "min", kermat.min(), "max", kermat.max(), fname
+                kermat /= tr1                
                 #print kermat
                 #kermat = exp(kermat*len(kermat))
                 #tr2 = trace(kermat)
@@ -82,18 +86,17 @@ def mkl_train(fname_l, reg, ltrain, no_mkl, flip):
                 cache_train[fname] = kermat, tr1, tr2
                 #print diag(kermat)
 
-            ker = Kernel.CustomKernel(kermat)
-            #ker.set_full_kernel_matrix_from_full(kermat)
-            #feat = Features.DummyFeatures(n)
+            yy, xx = mgrid[:kermat.shape[0], :kermat.shape[1]]
+            kermat_triangle = kermat[yy<=xx]
+            ker = Kernel.CustomKernel()
+            ker.set_triangle_kernel_matrix_from_triangle(kermat_triangle.astype(double))
             combker.append_kernel(ker)
-            #combfeat.append_feature_obj(feat)
+            del kermat
         
             ker_l += [ker]
-            #feat_l += [feat]
             tr1_l += [tr1]
             tr2_l += [tr2]
 
-        #combker.init(combfeat, combfeat)
         cache = {'ker_l': ker_l,
                  #'feat_l': feat_l,
                  'tr1_l':tr1_l,
@@ -154,6 +157,11 @@ def mkl_train(fname_l, reg, ltrain, no_mkl, flip):
 
     assert(svm1.train())
     www = combker.get_subkernel_weights()
+    print "sum before", www.sum()
+    www[www<MKL_WEIGHTS_CUTOFF] = 0
+    www = sp.array(www, dtype='float64')
+    print "sum after", www.sum()    
+    www /= www.sum()
     print www
     print "-w " + " -w ".join([str(e) for e in www])
     sys.exit(0)
