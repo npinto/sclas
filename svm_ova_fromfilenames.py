@@ -30,7 +30,7 @@ from shogun import Kernel, Classifier, Features
 
 # ------------------------------------------------------------------------------
 DEFAULT_WEIGHTS = []
-DEFAULT_REGULARIZATION = 1e5
+DEFAULT_REGULARIZATION = 1e4
 DEFAULT_NO_TRACE_NORMALIZATION = False
 DEFAULT_OUTPUT_FILENAME = None
 DEFAULT_OVERWRITE = False
