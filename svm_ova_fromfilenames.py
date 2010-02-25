@@ -10,7 +10,7 @@ import sys
 from os import path
 import warnings
 
-#import scipy as sp
+import scipy as sp
 import numpy as np
 
 #from scipy import (
@@ -245,7 +245,7 @@ def svm_ova_fromfilenames(input_filenames,
             print "Average Precision:", ap
 
         except ValueError:
-            ap = 0
+            ap = sp.nan
 
 
     # XXX: clean this
@@ -253,6 +253,30 @@ def svm_ova_fromfilenames(input_filenames,
                        for lab in np.unique(svm_labels.ravel())]
                       )*2-1
     test_y = test_y.T
+
+    # XXX: for now compute d-prime for bin problems only
+    from scipy.stats import norm
+    if distances.ndim == 1:
+        #print test_labels
+
+        assert (test_labels == svm_labels).all()
+        
+        preds = sp.sign(distances)
+        gt = svm_labels
+
+        target_idx = gt>0
+        distractor_idx = gt<=0
+            
+        pred_targets = preds[target_idx]
+        pred_distractors = preds[distractor_idx]
+
+        hit_rate = 1.*(pred_targets > 0).sum() / pred_targets.size
+
+        falsealarm_rate = 1.*(pred_distractors > 0).sum() / pred_distractors.size
+        dprime = norm.ppf(hit_rate) - norm.ppf(falsealarm_rate)
+        print "dprime:", dprime
+    else:
+        dprime = sp.nan
     
     # --------------------------------------------------------------------------
     # -- write output file
@@ -266,6 +290,7 @@ def svm_ova_fromfilenames(input_filenames,
                 "test_labels": test_labels,
                 "test_y": test_y,
                 "svm_labels": svm_labels,
+                'dprime': dprime,
                 }
 
         io.savemat(output_filename, data, format='4')
