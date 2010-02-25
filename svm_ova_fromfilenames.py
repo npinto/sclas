@@ -258,8 +258,9 @@ def svm_ova_fromfilenames(input_filenames,
     from scipy.stats import norm
     if distances.ndim == 1:
         #print test_labels
+        #print svm_labels
 
-        assert (test_labels == svm_labels).all()
+        #assert (test_labels == svm_labels).all()
         
         preds = sp.sign(distances)
         gt = svm_labels
