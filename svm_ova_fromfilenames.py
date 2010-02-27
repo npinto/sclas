@@ -279,6 +279,7 @@ def svm_ova_fromfilenames(input_filenames,
     else:
         print distances.shape
         print svm_labels.shape
+        print test_y.shape
         raise
         #for preds, gt in zip(distances
         preds = sp.sign(distances)
