@@ -288,6 +288,7 @@ def svm_ova_fromfilenames(input_filenames,
             pred_targets = preds[target_idx]
             pred_distractors = preds[distractor_idx]
 
+            print preds>0
             print preds
             print pred_targets
             print pred_distractors
