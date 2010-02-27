@@ -277,6 +277,25 @@ def svm_ova_fromfilenames(input_filenames,
         dprime = norm.ppf(hit_rate) - norm.ppf(falsealarm_rate)
         print "dprime:", dprime
     else:
+        print distances.shape
+        print svm_labels.shape
+        raise
+        #for preds, gt in zip(distances
+        preds = sp.sign(distances)
+        gt = svm_labels
+
+        target_idx = gt>0
+        distractor_idx = gt<=0
+            
+        pred_targets = preds[target_idx]
+        pred_distractors = preds[distractor_idx]
+
+        hit_rate = 1.*(pred_targets > 0).sum() / pred_targets.size
+
+        falsealarm_rate = 1.*(pred_distractors > 0).sum() / pred_distractors.size
+        dprime = norm.ppf(hit_rate) - norm.ppf(falsealarm_rate)
+        print "dprime:", dprime
+        
         dprime = sp.nan
     
     # --------------------------------------------------------------------------
