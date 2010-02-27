@@ -288,6 +288,9 @@ def svm_ova_fromfilenames(input_filenames,
             pred_targets = preds[target_idx]
             pred_distractors = preds[distractor_idx]
 
+            print pred_targets
+            print pred_distractors
+
             hit_rate = 1.*(pred_targets > 0).sum() / pred_targets.size
 
             falsealarm_rate = 1.*(pred_distractors > 0).sum() / pred_distractors.size
