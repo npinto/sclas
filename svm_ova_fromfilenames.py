@@ -279,8 +279,8 @@ def svm_ova_fromfilenames(input_filenames,
     else:
         dprime_l = []
         for preds, gt in zip(distances.T, test_y.T):
-            preds = sp.sign(distances)
-            gt = svm_labels
+            #preds = sp.sign(distances)
+            #gt = svm_labels
 
             target_idx = gt>0
             distractor_idx = gt<=0
