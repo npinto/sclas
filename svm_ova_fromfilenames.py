@@ -300,8 +300,9 @@ def svm_ova_fromfilenames(input_filenames,
             print "dprime:", dprime
             if not sp.isnan(dprime) and not sp.isinf(dprime):
                 dprime_l += [dprime]
-            
-        print "mean dprime:", mean(dprime_l)
+
+        dprime = mean(dprime_l)
+        print "mean dprime (corrected):", dprime
         #dprime_a = sp.array(dprime_l)
         #sp.putmask(dprime_a, sp.isnan(
         #raise
