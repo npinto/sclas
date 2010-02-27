@@ -297,7 +297,7 @@ def svm_ova_fromfilenames(input_filenames,
 
             falsealarm_rate = 1.*(pred_distractors > 0).sum() / pred_distractors.size
             dprime = norm.ppf(hit_rate) - norm.ppf(falsealarm_rate)
-            #print "dprime:", dprime
+            print "dprime:", dprime
             if not sp.isnan(dprime) and not sp.isinf(dprime):
                 dprime_l += [dprime]
             
