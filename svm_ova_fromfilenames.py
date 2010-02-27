@@ -288,21 +288,25 @@ def svm_ova_fromfilenames(input_filenames,
             pred_targets = preds[target_idx]
             pred_distractors = preds[distractor_idx]
 
-            print preds>0
-            print preds
-            print pred_targets
-            print pred_distractors
+            #print preds>0
+            #print preds
+            #print pred_targets
+            #print pred_distractors
 
             hit_rate = 1.*(pred_targets > 0).sum() / pred_targets.size
 
             falsealarm_rate = 1.*(pred_distractors > 0).sum() / pred_distractors.size
             dprime = norm.ppf(hit_rate) - norm.ppf(falsealarm_rate)
             print "dprime:", dprime
-            dprime_l += [dprime]
+            if not sp.isnan(dprime) and not sp.isinf(dprime):
+                dprime_l += [dprime]
+            
         print mean(dprime_l)
-        raise
+        #dprime_a = sp.array(dprime_l)
+        #sp.putmask(dprime_a, sp.isnan(
+        #raise
         
-        dprime = sp.nan
+        #dprime = sp.nan
     
     # --------------------------------------------------------------------------
     # -- write output file
