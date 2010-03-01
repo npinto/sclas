@@ -632,7 +632,7 @@ class GetFvectorFromSuffix(object):
             sys.stdout.flush()
             if not path.exists(fname):
                 raise IOError("File '%s' doesn't exist!" % fname)
-            if path.getsize(fname)==0::
+            if path.getsize(fname)==0:
                 raise IOError("File '%s' is empty!" % fname)
 
         # --
