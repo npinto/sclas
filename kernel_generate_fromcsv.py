@@ -68,6 +68,7 @@ VALID_SIMFUNCS = [
     'sqrt_mul',
     'sq_add',
     'pseudo_AND_soft_range01',
+    'concat',
     # -- Others
     #'sq_diff_o_sum',
     # -- DDC Feb 2010
@@ -507,6 +508,9 @@ def get_simfunc_fvector(fdata1, fdata2, simfunc=DEFAULT_SIMFUNC):
         fvector = 4. * (fdata1 / denom) * (fdata2 / denom)
         sp.putmask(fvector, sp.isnan(fvector), 0)
         sp.putmask(fvector, sp.isinf(fvector), 0)                        
+
+    elif simfunc == 'concat':
+        return sp.concatenate((fdata1, fdata2))
 
     # DDC additions, FWTW:
     elif simfunc == 'normalized_AND_soft':
