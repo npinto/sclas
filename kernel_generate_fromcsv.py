@@ -611,6 +611,7 @@ class GetFvectorFromSuffix(object):
         self.input_path = input_path
         self.input_suffix = input_suffix
         self.variable_name = variable_name
+        self._cache = {}
         
     def initialize(self,
                    ori_train_fnames,
@@ -654,16 +655,22 @@ class GetFvectorFromSuffix(object):
         
         if len(one_or_two_fnames) == 1:
             fname = path.join(input_path, one_or_two_fnames[0]+input_suffix)
-            fvector = load_fname(fname, kernel_type, self.variable_name)
+            if fname not in self._cache:            
+                fvector = load_fname(fname, kernel_type, self.variable_name)
+                self._cache[fname] = fvector.copy()
+            else:
+                fvector = self._cache[fname].copy()                
         elif len(one_or_two_fnames) == 2:
             fname1 = path.join(input_path, one_or_two_fnames[0]+input_suffix)
             fname2 = path.join(input_path, one_or_two_fnames[1]+input_suffix)
-            fdata1 = load_fname(fname1, kernel_type, self.variable_name)
-            fdata2 = load_fname(fname2, kernel_type, self.variable_name)
-            assert fdata1.shape == fdata2.shape, "with %s and %s" % (fname1, fname2)
-
-            fvector = get_simfunc_fvector(fdata1, fdata2, simfunc=simfunc)
-
+            if (fname1, fname2) not in self._cache:            
+                fdata1 = load_fname(fname1, kernel_type, self.variable_name)
+                fdata2 = load_fname(fname2, kernel_type, self.variable_name)
+                assert fdata1.shape == fdata2.shape, "with %s and %s" % (fname1, fname2)
+                fvector = get_simfunc_fvector(fdata1, fdata2, simfunc=simfunc)
+                self._cache[(fname1, fname2)] = fvector.copy()
+            else:
+                fvector = self._cache[(fname1, fname2)].copy()
         else:
             raise ValueError("len(one_or_two_fnames) = %d" % len(one_or_two_fnames))
 
