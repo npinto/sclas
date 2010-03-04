@@ -14,6 +14,8 @@ def kernel_generate_fromcsv_l(
     **kwargs):
     
     assert(path.isdir(output_dir))
+
+    print len(input_csv_fname_l), "files to process"
     
     for input_csv_fname in input_csv_fname_l:
         output_fname = path.join(output_dir,
