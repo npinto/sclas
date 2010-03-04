@@ -854,7 +854,9 @@ def kernel_generate_fromcsv(input_csv_fname,
     elif kernel_type == "exp_mu_da":
         da_matrix = da_fromfeatures(train_features)
         da_mu_train = da_matrix.mean()
-        kernel_traintrain = ne.evaluate("exp(-da_matrix/da_mu_train)")        
+        kernel_traintrain = ne.evaluate("exp(-da_matrix/da_mu_train)")
+
+    assert((kernel_traintrain!=0).all())
 
     # --------------------------------------------------------------------------
     # -- load features from test filenames
@@ -882,6 +884,8 @@ def kernel_generate_fromcsv(input_csv_fname,
         da_matrix = da_fromfeatures(train_features, test_features)
         kernel_traintest = ne.evaluate("exp(-da_matrix/da_mu_train)")        
 
+    assert((kernel_traintest!=0).all())
+    
     # --------------------------------------------------------------------------
     # -- write output file
     print
