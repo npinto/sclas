@@ -48,6 +48,7 @@ DEFAULT_NOWHITEN = False
 DEFAULT_VARIABLE_NAME = "data"
 DEFAULT_INPUT_PATH = "./"
 DEFAULT_OVERWRITE = False
+DEFAULT_NOVERIFY = False
 DEFAULT_VERBOSE = False
 
 LIMIT = None
@@ -611,7 +612,10 @@ class GetFvectorFromSuffix(object):
         self.input_suffix = input_suffix
         self.variable_name = variable_name
         
-    def initialize(self, ori_train_fnames, ori_test_fnames):
+    def initialize(self,
+                   ori_train_fnames,
+                   ori_test_fnames,
+                   noverify=DEFAULT_NOVERIFY):
         input_suffix = self.input_suffix
         input_path = self.input_path
         train_fnames = [ [ path.join(input_path, fname+input_suffix)                       
@@ -625,15 +629,16 @@ class GetFvectorFromSuffix(object):
         ntrain = len(train_fnames)
         ntest = len(test_fnames)
 
-        all_fnames = sp.array(train_fnames+test_fnames).ravel()
-        for n, fname in enumerate(all_fnames):
-            sys.stdout.write("Verifying that all necessary files exist:"
-                             " %02.2f%%\r" % (100.*(n+1)/all_fnames.size))
-            sys.stdout.flush()
-            if not path.exists(fname):
-                raise IOError("File '%s' doesn't exist!" % fname)
-            if path.getsize(fname)==0:
-                raise IOError("File '%s' is empty!" % fname)
+        if not noverify:
+            all_fnames = sp.array(train_fnames+test_fnames).ravel()
+            for n, fname in enumerate(all_fnames):
+                sys.stdout.write("Verifying that all necessary files exist:"
+                                 " %02.2f%%\r" % (100.*(n+1)/all_fnames.size))
+                sys.stdout.flush()
+                if not path.exists(fname):
+                    raise IOError("File '%s' doesn't exist!" % fname)
+                if path.getsize(fname)==0:
+                    raise IOError("File '%s' is empty!" % fname)
 
         # --
         self.train_fnames = train_fnames
@@ -679,6 +684,7 @@ def kernel_generate_fromcsv(input_csv_fname,
                             #input_path = DEFAULT_INPUT_PATH,
                             # --
                             overwrite = DEFAULT_OVERWRITE,
+                            noverify = DEFAULT_NOVERIFY,
                             ):
 
     assert(kernel_type in VALID_KERNEL_TYPES)
@@ -706,7 +712,7 @@ def kernel_generate_fromcsv(input_csv_fname,
     ntrain = len(ori_train_fnames)
     ntest = len(ori_test_fnames)
 
-    get_fvector_obj.initialize(ori_train_fnames, ori_test_fnames)
+    get_fvector_obj.initialize(ori_train_fnames, ori_test_fnames, noverify=noverify)
     get_fvector_func = get_fvector_obj.get_fvector
 
     # --------------------------------------------------------------------------
@@ -938,6 +944,11 @@ def get_optparser():
                       action="store_true",
                       help="overwrite existing file [default=%default]")
 
+    parser.add_option("--noverify",
+                      default=DEFAULT_NOVERIFY,
+                      action="store_true",
+                      help="disable verification of files before loading [default=%default]")
+
 #     parser.add_option("--verbose", "-v" ,
 #                       default=DEFAULT_VERBOSE,
 #                       action="store_true",
@@ -983,6 +994,7 @@ def main():
                                 #input_path = opts.input_path,
                                 # --
                                 overwrite = opts.overwrite,
+                                noverify = opts.noverify
                                 )
 
 # ------------------------------------------------------------------------------
