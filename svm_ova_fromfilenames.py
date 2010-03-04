@@ -97,6 +97,9 @@ def svm_ova_fromfilenames(input_filenames,
         ktrn = kernel_mat['kernel_traintrain']
         ktst = kernel_mat['kernel_traintest']
 
+        assert (ktrn!=0).all()
+        assert (ktst!=0).all()
+
         if not no_trace_normalization:
             ktrn_trace = ktrn.trace()
             ktrn /= ktrn_trace
