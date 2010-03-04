@@ -320,8 +320,8 @@ def load_fname(fname, kernel_type, variable_name):
         raise
 
     if error:
-        raise RuntimeError("An error occured while loading %s data."
-                           % info_str)
+        raise RuntimeError("An error occured while loading '%s'",
+                           % fname)
 
     assert(not sp.isnan(fdata).any())
     assert(not sp.isinf(fdata).any())
