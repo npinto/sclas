@@ -712,6 +712,9 @@ def kernel_generate_fromcsv(input_csv_fname,
     ntrain = len(ori_train_fnames)
     ntest = len(ori_test_fnames)
 
+    assert(ntrain>0)
+    assert(ntest>0)
+
     get_fvector_obj.initialize(ori_train_fnames, ori_test_fnames, noverify=noverify)
     get_fvector_func = get_fvector_obj.get_fvector
 
