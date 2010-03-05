@@ -279,7 +279,7 @@ def svm_ova_fromfilenames(input_filenames,
 
         falsealarm_rate = 1.*(pred_distractors > 0).sum() / pred_distractors.size
         dprime = norm.ppf(hit_rate) - norm.ppf(falsealarm_rate)
-        print "dprime:", dprime
+        #print "dprime:", dprime
     else:
         dprime_l = []
         for preds, gt in zip(test_distances.T, test_y.T):
