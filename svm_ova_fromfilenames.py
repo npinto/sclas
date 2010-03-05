@@ -130,7 +130,8 @@ def svm_ova_fromfilenames(input_filenames,
     kernel_train = kernel_train.astype(double)
     kernel_test = kernel_test.astype(double)
 
-    n_test = kernel_test.shape[1]
+    ntrain = kernel_train.shape[1]
+    ntest = kernel_test.shape[1]
     alphas = {}
     support_vectors = {}
     biases = {}
@@ -147,6 +148,7 @@ def svm_ova_fromfilenames(input_filenames,
         categories = [categories[0]]
 
     print "Training %d SVM(s) ..." % len(categories)
+    train_y = []
     for icat, cat in enumerate(categories):
         ltrain = zeros((train_labels.size))
         ltrain[train_labels != cat] = -1
@@ -163,38 +165,53 @@ def svm_ova_fromfilenames(input_filenames,
         svs = svm.get_support_vectors()
         support_vectors[cat] = svs
         biases[cat] = svm.get_bias()
-        cat_index[cat] = icat 
+        cat_index[cat] = icat
+
+        print " %d SVs" % len(svs)
+        train_y += [ltrain]
+        
+    train_y = sp.array(train_y).T
 
     #print "ok"
     
     # -- test
-    print "Testing ..."
-    pred = zeros((n_test))
-    test_distances = zeros((n_test, len(categories)))
+    print "Predicting training data ..."
+    train_predictions = zeros((ntrain, len(categories)))
+    for icat, cat in enumerate(categories):        
+        index_sv = support_vectors[cat]
+        resps = dot(alphas[cat], 
+                    kernel_train[index_sv]) + biases[cat]
+        train_predictions[:, icat] = resps
+
+    print "perf=", 100.*(sp.sign(train_predictions)==train_y).sum()/train_y.size
+
+    print "Predicting testing data ..."
+    pred = zeros((ntest))
+    test_predictions = zeros((ntest, len(categories)))
     for icat, cat in enumerate(categories):        
         index_sv = support_vectors[cat]
         resps = dot(alphas[cat], 
                    kernel_test[index_sv]) + biases[cat]
-        test_distances[:, icat] = resps
+        test_predictions[:, icat] = resps
 
 
     if len(categories) > 1:
-        pred = test_distances.argmax(1)
+        pred = test_predictions.argmax(1)
         gt = array([cat_index[e] for e in test_labels]).astype("int")
         perf = (pred == gt)
 
-        accuracy = 100.*perf.sum() / n_test
+        accuracy = 100.*perf.sum() / ntest
     else:
-        pred = sign(test_distances).ravel()
+        pred = sign(test_predictions).ravel()
         gt = array(test_labels)
         cat = categories[0]
         gt[gt != cat] = -1
         gt[gt == cat] = +1
         gt = gt.astype("int")
         perf = (pred == gt)
-        accuracy = 100.*perf.sum() / n_test        
+        accuracy = 100.*perf.sum() / ntest        
         
-    print test_distances.shape
+    print test_predictions.shape
     print "Classification accuracy on test data (%):", accuracy
 
     svm_labels = gt
@@ -202,8 +219,8 @@ def svm_ova_fromfilenames(input_filenames,
     # -- average precision
     # XXX: redo this part to handle other labels than +1 / -1
     ap = 0
-    if test_distances.shape[1] == 1:
-        test_distances = test_distances.ravel()
+    if test_predictions.shape[1] == 1:
+        test_predictions = test_predictions.ravel()
         assert test_labels.ndim == 1            
         assert svm_labels.ndim == 1
     
@@ -213,7 +230,7 @@ def svm_ova_fromfilenames(input_filenames,
         try:
             test_labels = array([int(elt) for elt in test_labels])
             if (test_labels != svm_labels).any():
-                test_distances = -test_distances
+                test_predictions = -test_predictions
 
             #if not ((test_labels==-1).any() and (test_labels==1).any()):
             #    test_labels[test_labels!=test_labels[0]] = +1
@@ -225,7 +242,7 @@ def svm_ova_fromfilenames(input_filenames,
             test_labels = array([int(elt) for elt in test_labels])
 
             # -- get average precision
-            c = test_distances
+            c = test_predictions
             #print c
             si = np.argsort(-c)
             tp = np.cumsum(np.single(test_labels[si]>0))
@@ -260,13 +277,13 @@ def svm_ova_fromfilenames(input_filenames,
 
     # XXX: for now compute d-prime for bin problems only
     from scipy.stats import norm
-    if test_distances.ndim == 1:
+    if test_predictions.ndim == 1:
         #print test_labels
         #print svm_labels
 
         #assert (test_labels == svm_labels).all()
         
-        preds = sp.sign(test_distances)
+        preds = sp.sign(test_predictions)
         gt = svm_labels
 
         target_idx = gt>0
@@ -282,8 +299,8 @@ def svm_ova_fromfilenames(input_filenames,
         #print "dprime:", dprime
     else:
         dprime_l = []
-        for preds, gt in zip(test_distances.T, test_y.T):
-            #preds = sp.sign(test_distances)
+        for preds, gt in zip(test_predictions.T, test_y.T):
+            #preds = sp.sign(test_predictions)
             #gt = svm_labels
 
             target_idx = gt>0
@@ -301,7 +318,7 @@ def svm_ova_fromfilenames(input_filenames,
 
             falsealarm_rate = 1.*(pred_distractors > 0).sum() / pred_distractors.size
             dprime = norm.ppf(hit_rate) - norm.ppf(falsealarm_rate)
-            print "dprime:", dprime
+            #print "dprime:", dprime
             if not sp.isnan(dprime) and not sp.isinf(dprime):
                 dprime_l += [dprime]
 
@@ -321,9 +338,14 @@ def svm_ova_fromfilenames(input_filenames,
         # TODO: save more stuff (alphas, etc.)
         data = {"accuracy": accuracy,
                 "average_precision":ap,
-                "test_distances": test_distances,
+                
+                "test_predictions": test_predictions,
                 "test_labels": test_labels,
                 "test_y": test_y,
+
+                "train_predictions": train_predictions,
+                "train_y": train_y,                
+                
                 "svm_labels": svm_labels,
                 'dprime': dprime,
                 }
