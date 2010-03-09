@@ -51,6 +51,8 @@ DEFAULT_OVERWRITE = False
 DEFAULT_NOVERIFY = False
 DEFAULT_VERBOSE = False
 
+N_EXIST_CHECK = 10
+
 LIMIT = None
 
 verbose = DEFAULT_VERBOSE
@@ -752,6 +754,14 @@ def kernel_generate_fromcsv(input_csv_fname,
                               dtype='float32')
         
         for i, one_or_two_fnames in enumerate(x_fnames):
+
+            # can we overwrite ?
+            if (i % N_EXIST_CHECK == 0) \
+                   and path.exists(output_fname) \
+                   and not overwrite:
+                warnings.warn("not allowed to overwrite %s"  % output_fname)
+                return
+            
             fvector = get_fvector_func(one_or_two_fnames,
                                        kernel_type,
                                        simfunc=simfunc)
