@@ -167,7 +167,7 @@ def svm_ova_fromfilenames(input_filenames,
         biases[cat] = svm.get_bias()
         cat_index[cat] = icat
 
-        print " %d SVs" % len(svs)
+        #print " %d SVs" % len(svs)
         train_y += [ltrain]
         
     train_y = sp.array(train_y).T
@@ -401,8 +401,6 @@ def main():
     else:
         input_filenames = args[:]
             
-        print input_filenames
-
         svm_ova_fromfilenames(input_filenames,
                               weights = opts.weights,
                               # --

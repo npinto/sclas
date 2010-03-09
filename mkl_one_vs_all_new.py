@@ -21,17 +21,44 @@ LIMIT = int(4e6)
 MKL_WEIGHTS_CUTOFF = 1e-4
 #MKL = True
 
+svm_tmp = Classifier.MKLClassification()
+
+DEFAULT_MKL_NORM = 1
+DEFAULT_BIAS_ENABLED = svm_tmp.get_bias_enabled()
+DEFAULT_EPSILON = svm_tmp.get_epsilon()
+DEFAULT_MKL_EPSILON = svm_tmp.get_mkl_epsilon()
+DEFAULT_C_MKL = 1
+DEFAULT_TUBE_EPSILON = 1e-1
+
 from IPython.Shell import IPShellEmbed
 ipshell = IPShellEmbed(argv=[])
 
 # XXX: OPTION: binary value with cutoff @ 1e-1 or 1e-2
 
-cache_train = {}
+#cache_train = {}
 cache_test = {}
 
-def mkl_train(fname_l, reg, ltrain, no_mkl, flip):
+def mkl_train(fname_l, reg, ltrain, no_mkl, flip,
+              mkl_norm = DEFAULT_MKL_NORM,
+              bias_enabled = DEFAULT_BIAS_ENABLED,
+              epsilon = DEFAULT_EPSILON,
+              C_mkl = DEFAULT_C_MKL,
+              mkl_epsilon = DEFAULT_MKL_EPSILON,
+              tube_epsilon = DEFAULT_TUBE_EPSILON,
+              ):
 
     global cache
+
+    print "-" * 80
+    print "reg =", reg
+    print "mkl_norm =", mkl_norm
+    print "bias_enabled =", bias_enabled
+    print "epsilon =", epsilon
+    print "C_mkl =", C_mkl
+    print "mkl_epsilon =", mkl_epsilon
+    print "tube_epsilon =", tube_epsilon
+    print "-" * 80
+
 
     d0 = io.loadmat(fname_l[0])
 
@@ -60,9 +87,10 @@ def mkl_train(fname_l, reg, ltrain, no_mkl, flip):
 
         print "loading nfiles=", len(fname_l)
         for i,fname in enumerate(fname_l):
-            if fname in cache_train:
-                kermat, tr1, tr2 = cache_train[fname]
-            else:
+            #if fname in cache_train:
+            #    kermat, tr1, tr2 = cache_train[fname]
+            #else:
+            if True:
                 #print "loading", fname
                 d = io.loadmat(fname)
                 #kermat = (d[keytrain]).astype(double)
@@ -83,7 +111,7 @@ def mkl_train(fname_l, reg, ltrain, no_mkl, flip):
                 #kermat /= tr2
                 #print kermat
                 tr2 = 0
-                cache_train[fname] = kermat, tr1, tr2
+                #cache_train[fname] = kermat, tr1, tr2
                 #print diag(kermat)
 
             yy, xx = mgrid[:kermat.shape[0], :kermat.shape[1]]
@@ -143,48 +171,43 @@ def mkl_train(fname_l, reg, ltrain, no_mkl, flip):
 
     kkk = combker.get_kernel_matrix()
     assert(not isnan(kkk).any())
-    assert(not isinf(kkk).any())# trace(kkk)
+    assert(not isinf(kkk).any())
+
+    #ipshell()
 
     #svm1.set_linadd_enabled(True)
     #svm1.set_shrinking_enabled(True)
-    #svm1.set_bias_enabled(False)
-    #svm1.set_epsilon(1e-1)
-    #svm1.set_tube_epsilon(1e-4)
-    #svm1.set_weight_epsilon(0)
-    #svm1.set_C_mkl(1e3)
-    #ipshell()
-    svm1.set_mkl_norm(1)
+    svm1.set_bias_enabled(bias_enabled)
+    svm1.set_epsilon(epsilon)
+    svm1.set_tube_epsilon(tube_epsilon)
+    svm1.set_mkl_epsilon(mkl_epsilon)
+    svm1.set_C_mkl(C_mkl)
+    svm1.set_mkl_norm(mkl_norm)
 
     assert(svm1.train())
     www = combker.get_subkernel_weights()
-    print "sum before", www.sum()
+    #print "sum before", www.sum()
+    print "-w " + " -w ".join([str(e) for e in www])
+    print "rectify"
     www[www<MKL_WEIGHTS_CUTOFF] = 0
     www = sp.array(www, dtype='float64')
-    print "sum after", www.sum()    
+    #print "sum after", www.sum()
+    
     www /= www.sum()
-    print www
     print "-w " + " -w ".join([str(e) for e in www])
-    sys.exit(0)
-    #raise
-#print 
 
     alphas = svm1.get_alphas()
     bias = svm1.get_bias()
     svs = svm1.get_support_vectors()
     
-    #print ker_l[0]
+#     weight_l = []
+#     for i,ker in enumerate(ker_l):
+#         weight = ker.get_combined_kernel_weight()
+#         weight_l += [weight]
 
-    #svm1 = Classifier.SVMLight(reg, ker, labels)
-    #svm1.train()
-    #print svm1.get_alphas()
-
-    weight_l = []
-    for i,ker in enumerate(ker_l):
-        weight = ker.get_combined_kernel_weight()
-        weight_l += [weight]
-
-    print weight_l
-    print "-w " + " -w ".join([str(e) for e in weight_l])
+    weight_l = www
+#     print weight_l
+#     print "-w " + " -w ".join([str(e) for e in weight_l])
     kweights = array(weight_l)
     kweights /= kweights.sum()
 
@@ -262,18 +285,25 @@ def mkl_test(mkl, fname_l, flip):
     traces1 = mkl["traces1"]
     #traces2 = mkl["traces2"]
 
-    m,n = d0[keytrain].shape
+    m,n = d0[keytest].shape
 
     nkernels = len(fname_l)
-    k3d = empty((m,n,nkernels), 'float32')
+    #k3d = empty((m,n,nkernels), 'float32')
+    kernel_test = zeros((m,n), 'float32')
 
     for i,fname in enumerate(fname_l):
+        kw = kweights[i]
+        print kw, fname
+        if kw == 0:
+            continue
         d = io.loadmat(fname)
         kermattst = d[keytest]/traces1[i]
         #kermattst = exp(kermattst*len(kermattst))
-        k3d[:,:,i] = kermattst#/traces2[i]
+        #print k3d[:,:,i].shape, kermattst.shape
+        #k3d[:,:,i] = kermattst#/traces2[i]
+        kernel_test += kermattst*kw
 
-    kernel_test = (kweights*k3d).sum(2)
+    #kernel_test = (kweights*k3d).sum(2)
     
     
     preds = dot(alphas, kernel_test[svs, :]) + bias
@@ -285,9 +315,20 @@ def mkl_one_vs_all(fname_l,
                    reg,
                    no_mkl=False,
                    flip=False,
-                   mean_mkl=False):
+                   mean_mkl=False,
+
+                   # --
+                   mkl_norm = DEFAULT_MKL_NORM,
+                   bias_enabled = DEFAULT_BIAS_ENABLED,
+                   epsilon = DEFAULT_EPSILON,
+                   C_mkl = DEFAULT_C_MKL,
+                   mkl_epsilon = DEFAULT_MKL_EPSILON,
+                   tube_epsilon = DEFAULT_TUBE_EPSILON,                        
+                   
+                   ):
     
     """ TODO: youssef docstring """
+    assert not flip
 
 
     d0 = io.loadmat(fname_l[0])
@@ -308,38 +349,41 @@ def mkl_one_vs_all(fname_l,
     #gt = array([int(e) for e in labels_test])
     gt = labels_test
 
+    print "="*80
+    print "Training ..."
     for icat, cat in enumerate(categories):
-        sys.stdout.write("%s."%cat)
-        sys.stdout.flush()
+        #sys.stdout.write("%s."%cat)
+        #sys.stdout.flush()
         ltrain = array(labels_train)
         ltrain[labels_train == cat] = +1
         ltrain[labels_train != cat] = -1
-        #print ltrain
-        #print labels_train
-        mkl = mkl_train(fname_l, reg, ltrain, no_mkl, flip)
-        #mkls[icat] = mkl
+        mkl = mkl_train(fname_l, reg, ltrain, no_mkl, flip,
+                        # --
+                        mkl_norm = mkl_norm,
+                        bias_enabled = bias_enabled,
+                        epsilon = epsilon,
+                        C_mkl = C_mkl,
+                        mkl_epsilon = mkl_epsilon,
+                        tube_epsilon = tube_epsilon,
+                        )
         mkls += [mkl]
-        #print (sign(mkl_test(mkl, fname_l))==ltrain).mean()
-        #print mkl
-        #print mkl['svm'].get_bias()
-#         if icat == 12:
-#             #print mkl['svm'].get_bias()
-#             #print ltrain
-#             print mkl['svm'].get_alphas()
-#             #raise
 
+        if len(categories) == 2:
+            break
+        
     print 
 
     #if mean_mkl:
         
-
+    print "="*80
+    print "Testing ..."
     n_test = len(labels_test)
     pred = zeros((n_test))
     distance = zeros((n_test, n_categories))
     #for point in xrange(n_test):
     for icat, cat in enumerate(categories):
-        sys.stdout.write("%s."%cat)
-        sys.stdout.flush()
+        #sys.stdout.write("%s."%cat)
+        #sys.stdout.flush()
         # pred
         mkl = mkls[icat]
         #print mkl['svm'].get_alphas()
@@ -350,6 +394,8 @@ def mkl_one_vs_all(fname_l,
         #if icat == 12:
         #print dd[:10], dd.argmax(), (dd>0).sum(), (dd<0).sum()
         #print (dd>0).sum(), (dd<0).sum()
+        if len(categories) == 2:
+            break
 
 
 #     iperf = []
@@ -438,6 +484,36 @@ def main():
                       default = False,
                       action="store_true",
                       help="[default=%default]")
+
+    parser.add_option("--mkl_norm",
+                      type="float",
+                      default = DEFAULT_MKL_NORM,
+                      help="[default=%default]")
+  
+    parser.add_option("--bias_enabled",
+                      type="int",
+                      default = DEFAULT_BIAS_ENABLED,
+                      help="0 or 1 [default=%default]")
+
+    parser.add_option("--epsilon",
+                      type="float",
+                      default = DEFAULT_EPSILON,
+                      help="[default=%default]")
+  
+    parser.add_option("--C_mkl",
+                      type="float",
+                      default = DEFAULT_C_MKL,
+                      help="[default=%default]")
+  
+    parser.add_option("--mkl_epsilon",
+                      type="float",
+                      default = DEFAULT_MKL_EPSILON,
+                      help="[default=%default]")
+  
+    parser.add_option("--tube_epsilon",
+                      type="float",
+                      default = DEFAULT_TUBE_EPSILON,
+                      help="[default=%default]")
   
     options, arguments = parser.parse_args()
 
@@ -446,12 +522,30 @@ def main():
     else:
         fname_l = arguments
         regularization_parameter = options.C
+
+        mkl_norm = float(options.mkl_norm)
+        bias_enabled = bool(options.bias_enabled)
+        epsilon = float(options.epsilon)
+        C_mkl = float(options.C_mkl)
+        mkl_epsilon = float(options.mkl_epsilon)
+        tube_epsilon = float(options.tube_epsilon)
+                          
+
         
         res1 = mkl_one_vs_all(fname_l,
                               regularization_parameter,
                               no_mkl=options.no_mkl,
                               flip=False,
-                              mean_mkl = options.mean_mkl)
+                              mean_mkl = options.mean_mkl,
+                              # --
+                              mkl_norm = mkl_norm,
+                              bias_enabled = bias_enabled,
+                              epsilon = epsilon,
+                              C_mkl = C_mkl,
+                              mkl_epsilon = mkl_epsilon,
+                              tube_epsilon = tube_epsilon,                              
+                              )
+        
 #         res2 = mkl_one_vs_all(fname_l,
 #                               regularization_parameter,
 #                               no_mkl=options.no_mkl,
