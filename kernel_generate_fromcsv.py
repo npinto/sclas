@@ -39,6 +39,8 @@ except ImportError:
 
 from npprogressbar import *
 
+class OverwriteError(Exception): pass
+
 # ------------------------------------------------------------------------------
 
 
@@ -759,8 +761,7 @@ def kernel_generate_fromcsv(input_csv_fname,
             if (i % N_EXIST_CHECK == 0) \
                    and path.exists(output_fname) \
                    and not overwrite:
-                warnings.warn("not allowed to overwrite %s"  % output_fname)
-                return
+                raise OverwriteError("not allowed to overwrite %s"  % output_fname)
             
             fvector = get_fvector_func(one_or_two_fnames,
                                        kernel_type,
@@ -775,9 +776,13 @@ def kernel_generate_fromcsv(input_csv_fname,
         return x_features
 
     # -- load features from train filenames
-    train_features = load_features(ori_train_fnames,
-                                   get_fvector_func,
-                                   info_str = 'training')
+    try:
+        train_features = load_features(ori_train_fnames,
+                                       get_fvector_func,
+                                       info_str = 'training')
+    except OverwriteError, err:
+        print err
+        return 
         
     # -- train x train
     print "Preprocessing train features ..."
@@ -880,10 +885,14 @@ def kernel_generate_fromcsv(input_csv_fname,
 
     # --------------------------------------------------------------------------
     # -- load features from test filenames
-    test_features = load_features(ori_test_fnames,
-                                  get_fvector_func,
-                                  info_str = 'testing')
-    
+    try:
+        test_features = load_features(ori_test_fnames,
+                                      get_fvector_func,
+                                      info_str = 'testing')
+    except OverwriteError, err:
+        print err
+        return   
+  
     # -- train x test
     print "Preprocessing test features ..."
     test_features = preprocess_features(test_features, 
