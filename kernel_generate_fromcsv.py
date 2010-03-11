@@ -959,7 +959,11 @@ def kernel_generate_fromcsv(input_csv_fname,
             "test_fnames": ori_test_fnames,
             }
 
-    io.savemat(output_fname, data, format="4")
+    try:
+        io.savemat(output_fname, data, format="4")
+    except IOError, err:
+        print "ERROR!:", err
+        
 
 # ------------------------------------------------------------------------------
 def get_optparser():
