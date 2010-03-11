@@ -183,7 +183,10 @@ def svm_ova_fromfilenames(input_filenames,
                     kernel_train[index_sv]) + biases[cat]
         train_predictions[:, icat] = resps
 
-    print "perf=", 100.*(sp.sign(train_predictions)==train_y).sum()/train_y.size
+    train_perf = 100.*(sp.sign(train_predictions)==train_y).sum()/train_y.size
+    print "train_perf=", train_perf
+    train_rmse = sp.sqrt(((train_predictions-train_y)**2.).mean())
+    print "train_rmse=", train_rmse
 
     print "Predicting testing data ..."
     pred = zeros((ntest))
@@ -209,10 +212,21 @@ def svm_ova_fromfilenames(input_filenames,
         gt[gt == cat] = +1
         gt = gt.astype("int")
         perf = (pred == gt)
-        accuracy = 100.*perf.sum() / ntest        
+        accuracy = 100.*perf.sum() / ntest
+        test_perf = accuracy
+        test_rmse = sp.sqrt(((pred-gt)**2.).mean())
+
+        perf_ratio = 1.*test_perf/train_perf
+        print "perf_ratio", perf_ratio
+
+        rmse_ratio = 1.*test_rmse/train_rmse
+        print "rmse_ratio", rmse_ratio
+
+        print "balance_ratio", rmse_ratio * test_perf
         
     print test_predictions.shape
     print "Classification accuracy on test data (%):", accuracy
+    print "Classification RMSE on test data (%):", test_rmse
 
     svm_labels = gt
 
