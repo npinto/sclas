@@ -805,6 +805,12 @@ def kernel_generate_fromcsv(input_csv_fname,
             curr = sp.empty_like(fmean)
             npoints_done = MEAN_MAX_NPOINTS
             while npoints_done < npoints:
+
+                # check if can we overwrite (other process)
+                if path.exists(output_fname) and not overwrite:
+                    warnings.warn("not allowed to overwrite %s"  % output_fname)
+                    return
+                
                 sel = train_features[npoints_done:npoints_done+MEAN_MAX_NPOINTS]
                 sp.add.reduce(sel, axis=0, dtype="float32", out=curr)
                 sp.add(fmean, curr, fmean)
@@ -835,6 +841,12 @@ def kernel_generate_fromcsv(input_csv_fname,
 
             npoints_done = MEAN_MAX_NPOINTS
             while npoints_done < npoints:
+
+                # check if can we overwrite (other process)
+                if path.exists(output_fname) and not overwrite:
+                    warnings.warn("not allowed to overwrite %s"  % output_fname)
+                    return
+
                 sel = train_features[npoints_done:npoints_done+MEAN_MAX_NPOINTS]
                 seln = sel.shape[0]
                 sp.subtract(sel, fmean, mem[:seln])
@@ -860,6 +872,11 @@ def kernel_generate_fromcsv(input_csv_fname,
     assert(not sp.isnan(sp.ravel(train_features)).any())
     assert(not sp.isinf(sp.ravel(train_features)).any())
 
+    # check if can we overwrite (other process)
+    if path.exists(output_fname) and not overwrite:
+        warnings.warn("not allowed to overwrite %s"  % output_fname)
+        return
+                
     train_features = preprocess_features(train_features, 
                                          kernel_type = kernel_type,
                                          whiten_vectors = whiten_vectors)
@@ -867,6 +884,11 @@ def kernel_generate_fromcsv(input_csv_fname,
     assert(not sp.isnan(sp.ravel(train_features)).any())
     assert(not sp.isinf(sp.ravel(train_features)).any())
 
+    # check if can we overwrite (other process)
+    if path.exists(output_fname) and not overwrite:
+        warnings.warn("not allowed to overwrite %s"  % output_fname)
+        return
+                
     print "Computing '%s' kernel_traintrain ..." % (kernel_type)
     if kernel_type == "dot":
         kernel_traintrain = dot_fromfeatures(train_features)
@@ -901,6 +923,11 @@ def kernel_generate_fromcsv(input_csv_fname,
     assert(not sp.isnan(test_features).any())
     assert(not sp.isinf(test_features).any())
 
+    # check if can we overwrite (other process)
+    if path.exists(output_fname) and not overwrite:
+        warnings.warn("not allowed to overwrite %s"  % output_fname)
+        return
+                
     print "Computing '%s' kernel_traintest ..."  % (kernel_type)
     if kernel_type == "dot":
         kernel_traintest = dot_fromfeatures(train_features, test_features)
@@ -915,6 +942,11 @@ def kernel_generate_fromcsv(input_csv_fname,
 
     assert(not (kernel_traintest==0).all())
     
+    # check if can we overwrite (other process)
+    if path.exists(output_fname) and not overwrite:
+        warnings.warn("not allowed to overwrite %s"  % output_fname)
+        return
+                
     # --------------------------------------------------------------------------
     # -- write output file
     print
