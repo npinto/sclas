@@ -356,9 +356,11 @@ def svm_ova_fromfilenames(input_filenames,
                 "test_predictions": test_predictions,
                 "test_labels": test_labels,
                 "test_y": test_y,
+                "test_fnames": [str(fname) for fname in test_fnames],
 
                 "train_predictions": train_predictions,
                 "train_y": train_y,                
+                "train_fnames": [str(fname) for fname in train_fnames],
                 
                 "svm_labels": svm_labels,
                 'dprime': dprime,
