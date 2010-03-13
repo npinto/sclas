@@ -553,6 +553,8 @@ def main():
         #print (res1+res2)/2.
         print
         print "perf=", res1
+        print "Classification accuracy on test data (%):", res1
+        
 
 #-------------------------------------------------------
 if __name__ == "__main__":
