@@ -223,10 +223,11 @@ def svm_ova_fromfilenames(input_filenames,
         print "rmse_ratio", rmse_ratio
 
         print "balance_ratio", rmse_ratio * test_perf
+        print "Classification RMSE on test data (%):", test_rmse
         
     print test_predictions.shape
     print "Classification accuracy on test data (%):", accuracy
-    print "Classification RMSE on test data (%):", test_rmse
+    
 
     svm_labels = gt
 
