@@ -129,10 +129,12 @@ def create_samediff_traintest_split(input_path,
     print "ntest=", ntest
     print "ntrain=", ntrain
 
-    # -- generate train/test lists
+    # -- generate train/test split
+    assert sp.unique(pairs_pos).size == pairs_pos.size
     shuffle(pairs_pos)
     pairs_pos = sp.array(pairs_pos).reshape(ncv, -1, 2)
     
+    assert sp.unique(pairs_neg).size == pairs_neg.size
     shuffle(pairs_neg)
     pairs_neg = sp.array(pairs_neg).reshape(ncv, -1, 2)
 
@@ -172,6 +174,7 @@ def create_samediff_traintest_split(input_path,
         splits += [split]
 
 
+    # -- write splits to the disk
     for n, split in enumerate(splits):
         assert len(split) == nimgs
         assert len([pair
