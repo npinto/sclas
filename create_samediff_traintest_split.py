@@ -78,7 +78,7 @@ def create_samediff_traintest_split(input_path,
         #cat_fnames[cat] = {"train": cfn_train, "test": cfn_test}
         cat_fnames[cat] = cfn
 
-    print cat_fnames
+    #print cat_fnames
 
     npos = nimgs / 2
     nneg = nimgs / 2
@@ -93,7 +93,9 @@ def create_samediff_traintest_split(input_path,
             shuffle(fns)
             pair = fns[:2]
             pair.sort()
-            if pair not in pairs_pos and pair[0] != pair[1]:
+            print pair, cat
+            assert pair[0] != pair[1]
+            if pair not in pairs_pos:
                 pairs_pos += [pair]
                 break
         
@@ -117,8 +119,9 @@ def create_samediff_traintest_split(input_path,
 
             pair = [fn1, fn2]
             pair.sort()
-            
-            if pair not in pairs_neg and fn1 != fn2:
+
+            assert fn1 != fn2
+            if pair not in pairs_neg:
                 pairs_neg += [pair]
                 break
 
@@ -130,11 +133,9 @@ def create_samediff_traintest_split(input_path,
     print "ntrain=", ntrain
 
     # -- generate train/test split
-    assert sp.unique(pairs_pos).size == pairs_pos.size
     shuffle(pairs_pos)
     pairs_pos = sp.array(pairs_pos).reshape(ncv, -1, 2)
     
-    assert sp.unique(pairs_neg).size == pairs_neg.size
     shuffle(pairs_neg)
     pairs_neg = sp.array(pairs_neg).reshape(ncv, -1, 2)
 
@@ -177,21 +178,31 @@ def create_samediff_traintest_split(input_path,
     # -- write splits to the disk
     for n, split in enumerate(splits):
         assert len(split) == nimgs
-        assert len([pair
-                    for pair in split
-                    if pair[3] == 'train']) == ntrain
-        assert len([pair
-                    for pair in split
-                    if pair[3] == 'test']) == ntest
-        assert len([pair
-                    for pair in split
-                    if pair[2] == '+1']) == npos
-        assert len([pair
-                    for pair in split
-                    if pair[2] == '-1']) == nneg
+        
+        train_l = [pair for pair in split if pair[3] == 'train']
+        assert len(train_l) == ntrain
+        test_l = [pair for pair in split if pair[3] == 'test']        
+        assert len(test_l) == ntest
+
+        # XXX: there is probably a nicer way to do the following with set*
+        intersection = sp.array([train_l[j]==test_l[i]
+                                 for j in xrange(ntrain)
+                                 for i in xrange(ntest)]).sum()
+        assert intersection == 0
+        
+        pos_l = [pair for pair in split if pair[2] == '+1']
+        assert len(pos_l) == npos
+        neg_l = [pair for pair in split if pair[2] == '-1']
+        assert len(neg_l) == nneg
 
         # -- write csv file
-        out_fname = "%s%02d.csv" % (output_prefix, n+1)        
+        out_fname = "%strain%dtest%d_split_%02d.csv" % (output_prefix,
+                                                        ntrain, ntest,
+                                                        n+1)        
+        # can we overwrite ?
+        if exists(out_fname) and not overwrite:
+            warnings.warn("not allowed to overwrite %s"  % out_fname)
+            continue
         print "="*80
         print "number of categories:", len(cats)
         print sp.array(cats)

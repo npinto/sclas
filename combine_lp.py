@@ -7,7 +7,7 @@ import scipy as sp
 from scipy import io
 from shogun import Kernel, Classifier, Features
 
-regularization = 10
+regularization = 10000
 
 #svm_out_l = ["tmp%d.mat.1000.svm_out.mat" % i for i in xrange(2,10)]
 svm_out_l = sys.argv[1:]

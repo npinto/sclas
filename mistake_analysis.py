@@ -130,9 +130,8 @@ def mistake_analysis(output_dir,
 
         assert x.size == y.size
 
-        print x.size
         ham = (x!=y).sum()
-        print "%s hamming: %d, percent overlap: %.2f" % (item, ham, 100.*ham/x.size)
+        print "%s hamming: %d, percent non-overlap: %.2f" % (item, ham, 100.*ham/x.size)
 
     # -- output images
     assert (d1['test_fnames'] == d2['test_fnames']).all()
