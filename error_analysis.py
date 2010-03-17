@@ -14,19 +14,20 @@ import itertools
 import scipy as sp
 from scipy import io
 import numpy as np
+import cPickle as pkl
 
 # ------------------------------------------------------------------------------
 DEFAULT_OVERWRITE = False
 DEFAULT_INPUT_PATH = "./"
 
 # ------------------------------------------------------------------------------
-def mistake_analysis(output_dir,
-                     input_fname1,
-                     input_fname2,# = None,
-                     # --
-                     input_path = DEFAULT_INPUT_PATH,                     
-                     overwrite = DEFAULT_OVERWRITE,
-                     ):
+def error_analysis(output_dir,
+                   input_fname1,
+                   input_fname2,# = None,
+                   # --
+                   input_path = DEFAULT_INPUT_PATH,                     
+                   overwrite = DEFAULT_OVERWRITE,
+                   ):
 
     """ TODO: docstring """
 
@@ -124,15 +125,21 @@ def mistake_analysis(output_dir,
     print "total:", len(test_y)
 
     # -- compute hamming distance
-    for item in 'tp', 'fn', 'tn', 'fp', :
+    items = 'tp', 'fn', 'tn', 'fp'
+    output_d = dict([(item, {}) for item in items])
+    for item in items:
         x = d1[item][1]
         y = d2[item][1]
 
         assert x.size == y.size
 
         ham = (x!=y).sum()
-        print "%s hamming: %d, percent non-overlap: %.2f" % (item, ham, 100.*ham/x.size)
-
+        overlap = 100.*(1.-(1.*ham/x.size))
+        print "%s hamming: %d, size: %d, percent overlap: %.2f" % (item, ham, x.size, overlap)
+        output_d[item]['hamming'] = ham
+        output_d[item]['size'] = x.size
+        output_d[item]['overlap'] = overlap
+        
     # -- output images
     assert (d1['test_fnames'] == d2['test_fnames']).all()
     fnames = [path.join(input_path, fname) for fname in d1['test_fnames']]
@@ -185,7 +192,12 @@ def mistake_analysis(output_dir,
             sys.stdout.write("\rProcessing '%s': "
                              "%6.2f%%" % (mpath, (100.*(n+1.)/nmfnames)))
             sys.stdout.flush()
-        print    
+            
+        print
+
+    out_fname = path.join(output_dir, "error_analysis.pkl")
+    print "Saving", out_fname
+    pkl.dump(output_d, open(out_fname, 'w+'), protocol=2)
     
 # ------------------------------------------------------------------------------
 def main():
@@ -225,13 +237,13 @@ def main():
 #         else:
 #             input_fname2 = None
 
-        mistake_analysis(output_dir,
-                         input_fname1,
-                         input_fname2,# = input_fname2,
-                         # --
-                         input_path = opts.input_path,
-                         overwrite = opts.overwrite,
-                         )
+        error_analysis(output_dir,
+                       input_fname1,
+                       input_fname2,# = input_fname2,
+                       # --
+                       input_path = opts.input_path,
+                       overwrite = opts.overwrite,
+                       )
                        
 # ------------------------------------------------------------------------------
 if __name__ == "__main__":
