@@ -19,26 +19,27 @@ import cPickle as pkl
 # ------------------------------------------------------------------------------
 DEFAULT_OVERWRITE = False
 DEFAULT_INPUT_PATH = "./"
+DEFAULT_OUTPUT_PATH = None
 
 # ------------------------------------------------------------------------------
-def error_analysis(output_dir,
-                   input_fname1,
-                   input_fname2,# = None,
+def error_analysis(input_fname1,
+                   input_fname2,
                    # --
-                   input_path = DEFAULT_INPUT_PATH,                     
+                   input_path = DEFAULT_INPUT_PATH,
+                   output_path = DEFAULT_OUTPUT_PATH,
                    overwrite = DEFAULT_OVERWRITE,
                    ):
 
     """ TODO: docstring """
 
-    if path.exists(output_dir):
+    if output_path is not None and path.exists(output_path):
         if not overwrite:
-            warnings.warn("not allowed to overwrite %s"  % output_dir)
+            warnings.warn("not allowed to overwrite %s"  % output_path)
             return
         else:
-            shutil.rmtree(output_dir)
+            shutil.rmtree(output_path)
         
-    os.makedirs(output_dir)
+        os.makedirs(output_path)
 
     print "Loading", input_fname1
     data1 = io.loadmat(input_fname1)
@@ -141,63 +142,66 @@ def error_analysis(output_dir,
         output_d[item]['overlap'] = overlap
         
     # -- output images
-    assert (d1['test_fnames'] == d2['test_fnames']).all()
-    fnames = [path.join(input_path, fname) for fname in d1['test_fnames']]
+    if output_path is not None:
+        assert (d1['test_fnames'] == d2['test_fnames']).all()
+        fnames = [path.join(input_path, fname) for fname in d1['test_fnames']]
 
-    nfnames = len(fnames)
-    for n, fname in enumerate(fnames):
-        assert path.exists(fname)
-        sys.stdout.write("\rVerify that the files exist: "
-                         "%6.2f%%" % (100.*(n+1.)/nfnames))
-        sys.stdout.flush()
-    print
-
-    fnames = sp.array(fnames).reshape(len(fnames)/2, 2)
-
-
-    pos_items = [(a,b) for a in 'tp','fn' for b in 'tp','fn']
-    neg_items = [(a,b) for a in 'tn','fp' for b in 'tn','fp']
-
-    all_items = pos_items + neg_items
-
-    for xitem, yitem in all_items:
-        
-        idx, x = d1[xitem]
-        idy, y = d2[yitem]
-        assert (idx==idy).all()
-
-        sel = sp.bitwise_and(x, y)
-        mfnames = fnames[idx][sel]
-
-        nmfnames = len(mfnames)
-
-        if nmfnames <= 0:
-            continue
-
-        mpath = path.join(output_dir, xitem+'_'+yitem)            
-        os.makedirs(mpath)
-        for n, (fname1, fname2) in enumerate(mfnames):
-            arr1 = sp.atleast_3d(sp.misc.imread(fname1).astype('float32'))
-            arr2 = sp.atleast_3d(sp.misc.imread(fname2).astype('float32'))
-            # grayscale?
-            if arr1.shape[2] == 1:
-                arr1 = sp.concatenate([arr1,arr1,arr1], 2)
-            if arr2.shape[2] == 1:
-                arr2 = sp.concatenate([arr2,arr2,arr2], 2)
-            fullarr = sp.concatenate([arr1, arr2], axis=1)
-            basename1 = path.basename(fname1)
-            basename2 = path.basename(fname2)
-            out_fname = path.join(mpath, "%s-%s" % (basename1, basename2))
-            sp.misc.imsave(out_fname, fullarr)
-            sys.stdout.write("\rProcessing '%s': "
-                             "%6.2f%%" % (mpath, (100.*(n+1.)/nmfnames)))
+        nfnames = len(fnames)
+        for n, fname in enumerate(fnames):
+            assert path.exists(fname)
+            sys.stdout.write("\rVerify that the files exist: "
+                             "%6.2f%%" % (100.*(n+1.)/nfnames))
             sys.stdout.flush()
-            
         print
 
-    out_fname = path.join(output_dir, "error_analysis.pkl")
-    print "Saving", out_fname
-    pkl.dump(output_d, open(out_fname, 'w+'), protocol=2)
+        fnames = sp.array(fnames).reshape(len(fnames)/2, 2)
+
+
+        pos_items = [(a,b) for a in 'tp','fn' for b in 'tp','fn']
+        neg_items = [(a,b) for a in 'tn','fp' for b in 'tn','fp']
+
+        all_items = pos_items + neg_items
+
+        for xitem, yitem in all_items:
+
+            idx, x = d1[xitem]
+            idy, y = d2[yitem]
+            assert (idx==idy).all()
+
+            sel = sp.bitwise_and(x, y)
+            mfnames = fnames[idx][sel]
+
+            nmfnames = len(mfnames)
+
+            if nmfnames <= 0:
+                continue
+
+            mpath = path.join(output_path, xitem+'_'+yitem)            
+            os.makedirs(mpath)
+            for n, (fname1, fname2) in enumerate(mfnames):
+                arr1 = sp.atleast_3d(sp.misc.imread(fname1).astype('float32'))
+                arr2 = sp.atleast_3d(sp.misc.imread(fname2).astype('float32'))
+                # grayscale?
+                if arr1.shape[2] == 1:
+                    arr1 = sp.concatenate([arr1,arr1,arr1], 2)
+                if arr2.shape[2] == 1:
+                    arr2 = sp.concatenate([arr2,arr2,arr2], 2)
+                fullarr = sp.concatenate([arr1, arr2], axis=1)
+                basename1 = path.basename(fname1)
+                basename2 = path.basename(fname2)
+                out_fname = path.join(mpath, "%s-%s" % (basename1, basename2))
+                sp.misc.imsave(out_fname, fullarr)
+                sys.stdout.write("\rProcessing '%s': "
+                                 "%6.2f%%" % (mpath, (100.*(n+1.)/nmfnames)))
+                sys.stdout.flush()
+
+            print
+
+        out_fname = path.join(output_path, "error_analysis.pkl")
+        print "Saving", out_fname
+        pkl.dump(output_d, open(out_fname, 'w+'), protocol=2)
+
+    return output_d
     
 # ------------------------------------------------------------------------------
 def main():
@@ -205,7 +209,6 @@ def main():
     """ TODO: docstring """    
 
     usage = ("usage: %prog [options] "
-             "<output_dir> "
              "<input_filename1> [<input_filename2>]")
     
     parser = optparse.OptionParser(usage=usage)
@@ -216,6 +219,12 @@ def main():
                       metavar="STR",
                       help="[DEFAULT='%default']")
     
+    parser.add_option("--output_path", "-o",
+                      default=DEFAULT_OUTPUT_PATH,
+                      type="str",
+                      metavar="STR",
+                      help="output path for images (if not None) [DEFAULT='%default']")
+    
     parser.add_option("--overwrite",
                       default=DEFAULT_OVERWRITE,
                       action="store_true",
@@ -223,25 +232,18 @@ def main():
 
     opts, args = parser.parse_args()
 
-    #if len(args) != 2 and len(args) != 3:
-    if len(args) != 3:
+    if len(args) != 2:
         parser.print_help()
     else:
 
-        output_dir = args[0]
-        input_fname1 = args[1]
-        input_fname2 = args[2]
+        input_fname1 = args[0]
+        input_fname2 = args[1]
 
-#         if len(args) == 3:
-#             input_fname2 = args[2]
-#         else:
-#             input_fname2 = None
-
-        error_analysis(output_dir,
-                       input_fname1,
-                       input_fname2,# = input_fname2,
+        error_analysis(input_fname1,
+                       input_fname2,
                        # --
                        input_path = opts.input_path,
+                       output_path = opts.output_path,
                        overwrite = opts.overwrite,
                        )
                        
