@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# TODO: serious refactoring!
+
 # TODO: clean + pylint
 # TODO: chi2-mpi fast
 # TODO: multiproc
@@ -301,37 +303,6 @@ def ndot_fromfeatures(features1,
     return sp.dot(features1, features2.T)
 
 # ------------------------------------------------------------------------------
-def load_fname(fname, kernel_type, variable_name):
-
-
-    error = False
-    try:
-        if kernel_type == "exp_mu_da":
-            # hack for GB with 204 dims
-            fdata = io.loadmat(fname)[variable_name].reshape(-1, 204)
-        else:
-            fdata = io.loadmat(fname)[variable_name].ravel()
-
-    except TypeError:
-        fname_error = fname+'.error'
-        print "[ERROR] couldn't open", fname, "moving it to", fname_error
-        #os.unlink(fname)
-        shutil.move(fname, fname_error)
-        error = True
-
-    except:
-        print "[ERROR] (unknown) with", fname
-        raise
-
-    if error:
-        raise RuntimeError("An error occured while loading '%s'"
-                           % fname)
-
-    assert(not sp.isnan(fdata).any())
-    assert(not sp.isinf(fdata).any())
-
-    return fdata
-
 # ------------------------------------------------------------------------------
 # def get_fvector2(fnames,
 #                 kernel_type,
@@ -607,16 +578,8 @@ def get_simfunc_fvector(fdata1, fdata2, simfunc=DEFAULT_SIMFUNC):
     return fvector
         
 # ------------------------------------------------------------------------------
-class GetFvectorFromSuffix(object):
-    
-    def __init__(self, input_suffix,
-                 input_path = DEFAULT_INPUT_PATH,
-                 variable_name = DEFAULT_VARIABLE_NAME):
-        self.input_path = input_path
-        self.input_suffix = input_suffix
-        self.variable_name = variable_name
-        self._cache = {}
-        
+class GetFvectorBase(object):
+
     def initialize(self,
                    ori_train_fnames,
                    ori_test_fnames,
@@ -648,37 +611,90 @@ class GetFvectorFromSuffix(object):
         # --
         self.train_fnames = train_fnames
         self.test_fnames = test_fnames
-        
+
+    def _process_image(self, fname):
+        raise NotImplementedError("abstract method")
+            
     def get_fvector(self,
                     one_or_two_fnames,
                     kernel_type,
-                    simfunc = DEFAULT_SIMFUNC):
+                    simfunc = kernel_generate_fromcsv.DEFAULT_SIMFUNC):
+
 
         input_path = self.input_path
-        input_suffix = self.input_suffix
         
         if len(one_or_two_fnames) == 1:
-            fname = path.join(input_path, one_or_two_fnames[0]+input_suffix)
-            if fname not in self._cache:            
-                fvector = load_fname(fname, kernel_type, self.variable_name)
+            fname = path.join(input_path, one_or_two_fnames[0])
+            if fname not in self._cache:                
+                fvector = self._process_image(fname)
                 self._cache[fname] = fvector.copy()
             else:
-                fvector = self._cache[fname].copy()                
+                fvector = self._cache[fname].copy()
         elif len(one_or_two_fnames) == 2:
-            fname1 = path.join(input_path, one_or_two_fnames[0]+input_suffix)
-            fname2 = path.join(input_path, one_or_two_fnames[1]+input_suffix)
-            if (fname1, fname2) not in self._cache:            
-                fdata1 = load_fname(fname1, kernel_type, self.variable_name)
-                fdata2 = load_fname(fname2, kernel_type, self.variable_name)
+            fname1 = path.join(input_path, one_or_two_fnames[0])
+            fname2 = path.join(input_path, one_or_two_fnames[1])
+            if (fname1, fname2) not in self._cache:
+                fdata1 = self._process_image(fname1)
+                fdata2 = self._process_image(fname2)
                 assert fdata1.shape == fdata2.shape, "with %s and %s" % (fname1, fname2)
-                fvector = get_simfunc_fvector(fdata1, fdata2, simfunc=simfunc)
+                fvector = kernel_generate_fromcsv.get_simfunc_fvector(
+                    fdata1, fdata2, simfunc=simfunc)
                 self._cache[(fname1, fname2)] = fvector.copy()
             else:
                 fvector = self._cache[(fname1, fname2)].copy()
+
         else:
             raise ValueError("len(one_or_two_fnames) = %d" % len(one_or_two_fnames))
 
-        return fvector
+        return fvector        
+        
+class GetFvectorFromSuffix(GetFvectorBase):
+    
+    def __init__(self,
+                 input_suffix,
+                 kernel_type,
+                 input_path = DEFAULT_INPUT_PATH,
+                 variable_name = DEFAULT_VARIABLE_NAME):
+        
+        self.input_path = input_path
+        self.input_suffix = input_suffix
+        self.kernel_type = kernel_type
+        self.variable_name = variable_name
+        self._cache = {}
+
+    def _process_image(self, fname):
+
+        kernel_type = self.kernel_type
+        variable_name = self.variable_name
+
+        error = False
+        try:
+            if kernel_type == "exp_mu_da":
+                # hack for GB with 204 dims
+                fdata = io.loadmat(fname)[variable_name].reshape(-1, 204)
+            else:
+                fdata = io.loadmat(fname)[variable_name].ravel()
+
+        except TypeError:
+            fname_error = fname+'.error'
+            print "[ERROR] couldn't open", fname, "moving it to", fname_error
+            #os.unlink(fname)
+            shutil.move(fname, fname_error)
+            error = True
+
+        except:
+            print "[ERROR] (unknown) with", fname
+            raise
+
+        if error:
+            raise RuntimeError("An error occured while loading '%s'"
+                               % fname)
+
+        assert(not sp.isnan(fdata).any())
+        assert(not sp.isinf(fdata).any())
+
+        return fdata
+
 
 # ------------------------------------------------------------------------------
 def kernel_generate_fromcsv(input_csv_fname,
