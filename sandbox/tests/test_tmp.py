@@ -78,7 +78,7 @@ def test_tmp():
     for key in keys:
         assert_array_equal(data[key], gt[key], "problem with '%s'" % key)
 
-    #os.unlink(output_fname)
+    os.unlink(output_fname)
     
 if __name__ == "__main__":
     run_module_suite()
