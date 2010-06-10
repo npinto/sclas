@@ -68,11 +68,11 @@ def test_tmp():
         thevars.update(dict([(key, data[key])]))
 
     if WRITE_GROUNDTRUTH:
-        fout = open(path.join("test_groundtruth", fname+'.pkl'), "w+")
+        fout = open(path.join(path.join(my_path, "test_groundtruth", fname+'.pkl'), "w+"))
         pkl.dump(thevars, fout, 2)
         fout.close()
 
-    fin = open(path.join("test_groundtruth", fname+'.pkl'))
+    fin = open(path.join(path.join(my_path, "test_groundtruth", fname+'.pkl')))
     gt = pkl.load(fin)
 
     for key in keys:
