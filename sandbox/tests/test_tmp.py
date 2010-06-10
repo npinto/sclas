@@ -18,7 +18,14 @@ WRITE_GROUNDTRUTH = False
 
 def setup():
     # XXX: get dataset from the web instead
-    assert path.exists(imageset_path)
+    if not path.exists(imageset_path):
+        import urllib
+        dlpath = path.join(my_path, "test_data.tgz")
+        print "Downloading test data..."
+        urllib.urlretrieve("http://s3.amazonaws.com/sclas_data/sclas_test_data.tar.gz", dlpath)
+        print "Extracting ..."
+        assert os.system("tar xzvf %s" % (dlpath)) == 0
+        os.unlink(dlpath)
 
     import glob
     fnames = glob.glob(path.join(imageset_path, "*/*.jpg"))
