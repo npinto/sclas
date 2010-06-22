@@ -122,9 +122,9 @@ def main():
                       help="overwrite existing file [default=%default]")
 
     parser.add_option("--rseed",
-                      type="int",
-                      metavar="INT",
+                      type="str",
                       default=DEFAULT_RSEED,
+                      metavar="INT",
                       help="fix the random seed (if not None) [default=%default]")
 
     opts, args = parser.parse_args()
@@ -142,7 +142,7 @@ def main():
                                ntest = int(opts.ntest),
                                # --
                                overwrite = opts.overwrite,
-                               rseed = opts.rseed,
+                               rseed = int(opts.rseed),
                                )        
 
 
