@@ -618,7 +618,7 @@ class GetFvectorBase(object):
     def get_fvector(self,
                     one_or_two_fnames,
                     kernel_type,
-                    simfunc = kernel_generate_fromcsv.DEFAULT_SIMFUNC):
+                    simfunc = DEFAULT_SIMFUNC):
 
 
         input_path = self.input_path
@@ -666,6 +666,8 @@ class GetFvectorFromSuffix(GetFvectorBase):
 
         kernel_type = self.kernel_type
         variable_name = self.variable_name
+
+        fname += self.input_suffix
 
         error = False
         try:
@@ -1062,6 +1064,7 @@ def main():
         get_vector_class = GetFvectorFromSuffix
         get_vector_obj = get_vector_class(
             input_suffix,
+            opts.kernel_type,
             input_path = opts.input_path,
             variable_name = opts.variable_name)
 
