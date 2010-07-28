@@ -6,6 +6,8 @@
 from scipy import array, io, double, zeros, dot
 from shogun import Kernel, Classifier, Features
 
+from os import path
+
 import optparse
 import sys
 import copy
@@ -29,6 +31,9 @@ DEFAULT_EPSILON = svm_tmp.get_epsilon()
 DEFAULT_MKL_EPSILON = svm_tmp.get_mkl_epsilon()
 DEFAULT_C_MKL = 1
 DEFAULT_TUBE_EPSILON = 1e-1
+
+DEFAULT_OUTPUT_FILENAME = None
+DEFAULT_OVERWRITE = False
 
 from IPython.Shell import IPShellEmbed
 ipshell = IPShellEmbed(argv=[])
@@ -325,11 +330,24 @@ def mkl_one_vs_all(fname_l,
                    mkl_epsilon = DEFAULT_MKL_EPSILON,
                    tube_epsilon = DEFAULT_TUBE_EPSILON,                        
                    
+                   # --
+                   output_filename = DEFAULT_OUTPUT_FILENAME,
+                   overwrite = DEFAULT_OVERWRITE,
                    ):
     
     """ TODO: youssef docstring """
     assert not flip
 
+
+    if output_filename is not None:
+        # add matlab's extension to the output filename if needed
+        if path.splitext(output_filename)[-1] != ".mat":
+            output_filename += ".mat"        
+
+        # can we overwrite ?
+        if path.exists(output_filename) and not overwrite:
+            warnings.warn("not allowed to overwrite %s"  % output_filename)
+            return
 
     d0 = io.loadmat(fname_l[0])
     
@@ -457,7 +475,33 @@ def mkl_one_vs_all(fname_l,
         
     perf_l += [sum(perf) / n_test]                
     perf_a = array(perf_l)
-    return perf_l[0]
+
+
+    # --------------------------------------------------------------------------
+    # -- write output file
+    accuracy = perf_l[0]
+    if output_filename is not None:
+        print "Writing %s ..." % (output_filename)
+        # TODO: save more stuff (alphas, etc.)
+        data = {"accuracy": accuracy,
+                #"average_precision":ap,
+                
+                #"test_predictions": test_predictions,
+                #"test_labels": test_labels,
+                #"test_y": test_y,
+                #"test_fnames": [str(fname) for fname in test_fnames],
+
+                #"train_predictions": train_predictions,
+                #"train_y": train_y,                
+                #"train_fnames": [str(fname) for fname in train_fnames],
+                
+                #"svm_labels": svm_labels,
+                #'dprime': dprime,
+                }
+
+        io.savemat(output_filename, data, format='4')
+    
+    return accuracy
     
 #----------------------------------------------------------
 def main():
@@ -514,6 +558,19 @@ def main():
                       type="float",
                       default = DEFAULT_TUBE_EPSILON,
                       help="[default=%default]")
+
+    # --
+    parser.add_option("--output_filename", "-o",
+                      type = "str",
+                      metavar = "FILENAME",
+                      default = DEFAULT_OUTPUT_FILENAME,
+                      help = "output the results in FILENAME(.mat) if not None[default=%default]")
+
+    parser.add_option("--overwrite",
+                      default=DEFAULT_OVERWRITE,
+                      action="store_true",
+                      help="overwrite existing file [default=%default]")
+
   
     options, arguments = parser.parse_args()
 
@@ -544,6 +601,9 @@ def main():
                               C_mkl = C_mkl,
                               mkl_epsilon = mkl_epsilon,
                               tube_epsilon = tube_epsilon,                              
+                              # --
+                              output_filename = options.output_filename,
+                              overwrite = options.overwrite,
                               )
         
 #         res2 = mkl_one_vs_all(fname_l,
