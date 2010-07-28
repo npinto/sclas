@@ -637,7 +637,7 @@ class GetFvectorBase(object):
                 fdata1 = self._process_image(fname1)
                 fdata2 = self._process_image(fname2)
                 assert fdata1.shape == fdata2.shape, "with %s and %s" % (fname1, fname2)
-                fvector = kernel_generate_fromcsv.get_simfunc_fvector(
+                fvector = get_simfunc_fvector(
                     fdata1, fdata2, simfunc=simfunc)
                 self._cache[(fname1, fname2)] = fvector.copy()
             else:
