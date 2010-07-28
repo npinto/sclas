@@ -479,7 +479,7 @@ def mkl_one_vs_all(fname_l,
 
     # --------------------------------------------------------------------------
     # -- write output file
-    accuracy = perf_l[0]
+    accuracy = 100.*perf_l[0]
     if output_filename is not None:
         print "Writing %s ..." % (output_filename)
         # TODO: save more stuff (alphas, etc.)
