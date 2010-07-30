@@ -79,8 +79,8 @@ def create_traintest_split(input_path,
             test_list += [ (fname, cat, "test") ]
 
     assert len(cats) != 0
-    assert len(len(train_list)) != 0
-    assert len(len(test_list)) != 0
+    assert len(train_list) != 0
+    assert len(test_list) != 0
 
     # -- write csv file
     print "="*80
