@@ -78,6 +78,10 @@ def create_traintest_split(input_path,
         for fname in cat_fnames[cat]["test"]:
             test_list += [ (fname, cat, "test") ]
 
+    assert len(cats) != 0
+    assert len(len(train_list)) != 0
+    assert len(len(test_list)) != 0
+
     # -- write csv file
     print "="*80
     print "number of categories:", len(cats)
