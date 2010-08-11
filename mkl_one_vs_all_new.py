@@ -17,6 +17,7 @@ import scipy as sp
 from scipy import unique, mgrid, trace, sign, ascontiguousarray, empty, diag
 from scipy import *
 import time
+import warnings
 
 C_DEFAULT = 1e4
 LIMIT = int(4e6)
