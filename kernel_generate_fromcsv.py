@@ -66,6 +66,7 @@ MEAN_MAX_NPOINTS = 2000
 STD_MAX_NPOINTS = 2000
 
 VALID_SIMFUNCS = [
+    'diff',
     # -- CVPR09
     'abs_diff',
     'sq_diff',    
@@ -450,7 +451,10 @@ def get_simfunc_fvector(fdata1, fdata2, simfunc=DEFAULT_SIMFUNC):
 
     assert simfunc in VALID_SIMFUNCS
 
-    if simfunc == 'abs_diff':
+    if simfunc == 'diff':
+        fvector = fdata1-fdata2
+
+    elif simfunc == 'abs_diff':
         fvector = sp.absolute(fdata1-fdata2)
 
     elif simfunc == 'sq_diff':
