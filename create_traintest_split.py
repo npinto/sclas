@@ -15,7 +15,7 @@ DEFAULT_NTEST = "2"
 DEFAULT_OVERWRITE = False
 DEFAULT_RSEED = None
 
-EXTENSIONS = [".jpg", ".bmp", ".png", ".pgm"]
+EXTENSIONS = [".jpg", ".bmp", ".png", ".pgm", ".tiff"]
 
 DEBUG = False
 
