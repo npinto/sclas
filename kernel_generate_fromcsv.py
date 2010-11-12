@@ -18,6 +18,7 @@ from os import path
 import shutil
 import optparse
 import csv
+import cPickle as pkl
 
 import warnings
 warnings.simplefilter('ignore', FutureWarning)
@@ -666,6 +667,16 @@ class GetFvectorFromSuffix(GetFvectorBase):
         self.variable_name = variable_name
         self._cache = {}
 
+    def _load_image(self, fname):
+        variable_name = self.variable_name
+
+        if fname.endswith('.mat'):
+            return io.loadmat(fname)[variable_name]
+        elif fname.endswith('.pkl'):
+            return pkl.load(open(fname))[variable_name]
+        else:
+            return sp.misc.imread(fname)
+
     def _process_image(self, fname):
 
         kernel_type = self.kernel_type
@@ -677,9 +688,11 @@ class GetFvectorFromSuffix(GetFvectorBase):
         try:
             if kernel_type == "exp_mu_da":
                 # hack for GB with 204 dims
-                fdata = io.loadmat(fname)[variable_name].reshape(-1, 204)
+                #fdata = io.loadmat(fname)[variable_name].reshape(-1, 204)
+                fdata = self._load_image(fname).reshape(-1, 204)
             else:
-                fdata = io.loadmat(fname)[variable_name].ravel()
+                fdata = self._load_image(fname).ravel()
+                #fdata = io.loadmat(fname)[variable_name].ravel()
 
         except TypeError:
             fname_error = fname+'.error'
