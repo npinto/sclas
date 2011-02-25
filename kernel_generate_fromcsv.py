@@ -657,7 +657,7 @@ class GetFvectorFromSuffix(GetFvectorBase):
     
     def __init__(self,
                  input_suffix,
-                 kernel_type,
+                 kernel_type = DEFAULT_KERNEL_TYPE,
                  input_path = DEFAULT_INPUT_PATH,
                  variable_name = DEFAULT_VARIABLE_NAME):
         
