@@ -42,6 +42,7 @@ def create_samediff_traintest_split(input_path,
     cat_paths = [ fil 
                   for fil in glob(input_path + "/*") 
                   if isdir(fil) ]
+    cat_paths.sort()
 
     cats = [ basename(cat_path) 
              for cat_path in cat_paths ]
@@ -60,6 +61,7 @@ def create_samediff_traintest_split(input_path,
         cfn = [ cat + "/" + basename(fname) 
                 for fname in glob(cat_path + "/*") 
                 if splitext(fname)[-1].lower() in EXTENSIONS ]
+        cfn.sort()
 
 #         # verify that there is enough
 #         if len(cfn) < nimgs:
